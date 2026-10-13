@@ -1,0 +1,4 @@
+{"zaman": "2026-10-13 08:55:47", "rol": "user", "icerik": "/arama flask tutorial"}
+{"zaman": "2026-10-13 08:55:47", "rol": "assistant", "icerik": "'flask tutorial' için sonuç bulunamadı.", "meta": {"komut": "arama"}}
+{"zaman": "2026-10-13 08:55:47", "rol": "user", "icerik": "python ile fibonacci kodu yaz ve hata debug et"}
+{"zaman": "2026-10-13 09:00:55", "rol": "user", "icerik": "merhaba"}

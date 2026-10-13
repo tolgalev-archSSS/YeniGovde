@@ -1,0 +1,24 @@
+{
+  "sunucu": {
+    "ip": "127.0.0.1",
+    "port": 8765
+  },
+  "ollama": {
+    "adres": "http://127.0.0.1:11434"
+  },
+  "modeller": {
+    "rutin_model": "",
+    "agir_model": "",
+    "siniflandirma_modeli": "",
+    "guc_orani": 0.55
+  },
+  "organlar": {},
+  "yetenekler": {},
+  "hafiza": {
+    "etkin": true,
+    "motor": "yerel",
+    "pencere_mesaj": 12,
+    "oturum_basina_ozet": 8,
+    "mem0_dosya": "veri/hafiza/mem0_hafiza.json"
+  }
+}
