@@ -41,9 +41,14 @@ class SiniflandiriciYedek:
 
     def gorev_tahmini(self, metin: str) -> str:
         t = metin.lower()
-        if any(k in t for k in ["ara", "bul", "güncel", "haber", "internet", "web"]):
+        if any(k in t for k in ["dosya", "klasör", "kaydet", "sil", "çöp", "taşı",
+                                "program aç", "uygulama aç", "süreç", "process",
+                                ".txt", ".md", ".pdf", ".docx", "masaüstü",
+                                "belgelerim", "indirilenler", "not defteri"]):
+            return "el"
+        if any(k in t for k in ["ara", "güncel", "haber", "internet", "web", "fiyat"]):
             return "arama"
-        if any(k in t for k in ["dosyaya yaz", "kaydet dosyaya", "not al", "yazdır"]):
+        if any(k in t for k in ["çıktı klasörüne yaz", "raporu veri"]):
             return "dosya_yazma"
         if any(k in t for k in ["hatırla", "geçmiş", "önceki", "ne yapmıştık"]):
             return "hafiza_ara"
@@ -55,8 +60,8 @@ SADECE geçerli bir JSON nesnesi döndür, başka hiçbir şey yazma. Şema:
 {
  "agirlik": 0.0-1.0,          # 1.0 = çok ağır iş (kod/planlama/derin analiz)
  "tur": "sohbet|kod|plan|analiz|arama|dosya|hatirlama|diger",
- "modul": "yok|arama|dosya_yazma|hafiza_ara",
- "modul_girdisi": "seçili modüle gönderilecek temiz girdi ya da boş string",
+ "modul": "yok|el|arama|dosya_yazma|hafiza_ara",
+ "modul_girdisi": {"eylem":"...","hedef":"...","icerik":"..."} ya da düz string,
  "gerekce": "tek cümle Türkçe"
 }
 Kurallar:
@@ -64,7 +69,12 @@ Kurallar:
 - Kod yazma/düzeltme/tasarım, çok adımlı plan, derin analiz → agirlik >= 0.7.
 - Güncel/dış dünya bilgisi gerekiyorsa (hava, haber, fiyat, son gelişme)
   modul=arama yap ve aranacak sorguyu modul_girdisi'ne yaz.
-- Dosyaya içerik yazma/kaydetme istenirse modul=dosya_yazma.
+- Bilgisayarda dosya/klasör/program işlemi istenirse modul=el ve
+  modul_girdisi bir JSON nesnesi olsun; eylem şunlardan biri:
+  dosya_oku, klasor_listele, dosya_yaz, dosya_duzelt, dosya_sil, dosya_tasi,
+  klasor_olustur, program_ac, program_listele, program_kapat.
+  Kullanıcının ev dizini ~ ile gösterilir (ör. "~/Desktop/not.txt").
+  İçerik bilinemiyorsa icerik alanını boş bırak (model sonra doldurur).
 - Geçmiş sohbet referansı istenirse modul=hafiza_ara.
 Şimdi analiz et:"""
 
@@ -102,6 +112,13 @@ class KararMerkezi:
             }
         sonuc["kaynak"] = kaynak
         sonuc.setdefault("modul", "yok")
+        # modul_girdisi sözlük (JSON) olabilir; yetenekler metin bekler → serileştir
+        if not isinstance(sonuc.get("modul_girdisi"), str):
+            try:
+                sonuc["modul_girdisi"] = json.dumps(
+                    sonuc["modul_girdisi"], ensure_ascii=False)
+            except Exception:
+                sonuc["modul_girdisi"] = metin
         sonuc.setdefault("modul_girdisi", metin)
         sonuc.setdefault("agirlik", self.yedek.agir_mi(metin))
         sonuc["model_secimi"] = self.model_sec(sfloat(sonuc["agirlik"]), ayar_modul)

@@ -47,6 +47,18 @@ input:checked+.slider:before{transform:translateX(16px)}
 .btn:hover{filter:brightness(1.15)}
 .btn.gris{background:var(--panel2);color:var(--metin);border:1px solid var(--cizgi)}
 .btn.kucuk{padding:4px 9px;font-size:12px}
+.sok-btn{background:none;border:1px solid var(--cizgi);color:var(--kirmizi);border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer}
+.sok-btn:hover{background:#3a1d1d}
+/* ONAY KARTI */
+.onay-kart{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;width:min(560px,94vw);
+  background:#1e1508;border:1px solid var(--sari);border-radius:12px;padding:16px 18px;box-shadow:0 12px 40px #000c;display:none}
+.onay-kart.acik{display:block}
+.onay-kart h4{color:var(--sari);font-size:14px;margin-bottom:8px}
+.onay-kart .hedef{font-family:Consolas,monospace;font-size:12.5px;background:#12161d;border:1px solid var(--cizgi);
+  border-radius:6px;padding:8px 10px;margin:8px 0;color:#ffd9a0;word-break:break-all}
+.onay-kart .butonlar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.onay-kart .btn.onay{background:var(--yesil)}
+.onay-kart .btn.reddet{background:var(--kirmizi);color:#fff}
 /* SOHBET */
 #sohbet-alan{flex:1;display:flex;flex-direction:column;min-width:0}
 #mesajlar{flex:1;overflow-y:auto;padding:22px 8%}
@@ -89,7 +101,12 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
   <div class="menu"><button>Modüller ▾</button>
     <div class="alt">
       <button onclick="modulleriYenile()">Kurulu Modülleri Tara</button>
-      <button onclick="bilgiGoster('organlar/ klasörüne yeni organ, yetenekler/ klasörüne yeni yetenek klasörü atın; sistem otomatik tanır. Silmek = sökmektir.')">Nasıl modül eklenir / sökülür?</button>
+      <button onclick="sokulenleriGoster()">Sökülen Arşivi Aç / Geri Kur</button>
+      <button onclick="elIzinleriGoster()">El İzin Defteri (kalıcı/oturum)</button>
+      <button onclick="bilgiGoster('MODÜL EKLEMEK:\nyetenekler/<kod>/ veya organlar/<kod>/ klasörü aç;\nmodul_bilgisi.py + modul.py (sozlesme sözlüğü) yeter. ' +
+        'Panelde 'Tara' ile anında görünür.\n\nMODÜL SÖKME:\nsoldaki listedeki 🗑 düğmesi → modül durdurulur ve klasörü ' +
+        'veri/sokulen_moduller arşivine taşınır (silinmez!). ' +
+        '\'Sökülen Arşivi Aç'tan GERİ KURabilirsiniz.')\">Nasıl modül eklenir / sökülür?</button>
     </div>
   </div>
   <div class="menu"><button>Sistem ▾</button>

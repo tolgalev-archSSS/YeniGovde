@@ -52,9 +52,20 @@ class ModulYukleyici:
                                 "bilgi_dosya": bilgi_dosya, "ana_dosya": ana_dosya})
         return bulunan
 
-    def tara(self) -> List[dict]:
-        """Diskteki tüm modülleri bulur, import eder, kayıt listesini döndürür."""
+    def tara(self, yeniden: bool = False) -> List[dict]:
+        """Diskteki tüm modülleri bulur, import eder, kayıt listesini döndürür.
+
+        yeniden=True → önce kayıtlar temizlenir (SÖK/GESTALT işlemi):
+        diskten düşen modül sozluk'ten de silinir; karar merkezi artık onu
+        seçemez, organ ise durdurulmuş sayılır.
+        """
         with self._kilit:
+            if yeniden:
+                for kod in [k for k, s in self._moduller.items()
+                            if s.get("tur") == TUR_ORGAN]:
+                    pass  # organlar etkinlik_ayarla ile zaten durdurulur
+                self._moduller.clear()
+                self._organ_calisan &= set()  # diskte olmayan kalmaz
             kayitlar = []
             adaylar = (self._klasoru_tara(yapilandirma.ORGAN_DIZIN, TUR_ORGAN)
                        + self._klasoru_tara(yapilandirma.YETENEK_DIZIN, TUR_YETENEK))
@@ -83,6 +94,13 @@ class ModulYukleyici:
                 havuz = ayarlar["organlar"] if k["tur"] == TUR_ORGAN else ayarlar["yetenekler"]
                 # tanınmayan yeni modül varsayılan olarak KURULU+AKTİF kabul edilir
                 k["etkin"] = bool(havuz.get(k["kod"], True))
+                s = self._moduller.get(k["kod"])
+                if s:
+                    s["etkin"] = k["etkin"]
+            # arka planda çalışan ama diskten düşmüş organları durdur
+            for kod in list(self._organ_calisan):
+                if kod not in self._moduller:
+                    self._organ_calisan.discard(kod)
             self._son_kayitlar = kayitlar
             return kayitlar
 

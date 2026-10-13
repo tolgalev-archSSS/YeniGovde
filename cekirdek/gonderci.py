@@ -10,6 +10,7 @@ Ayrıca "modülü çağır/sök/kur" gibi doğrudan sistem komutlarını tanır.
 from __future__ import annotations
 
 import re
+import threading
 import uuid
 from typing import Dict, Optional
 
@@ -38,6 +39,9 @@ class GorevGonderici:
         GONDERCI_BAGI["hafiza"] = self.hafiza
         self.karar = KararMerkezi(self.ollama, lambda: TEKIL.sozluk)
         self.aktif_oturum: str = "genel"
+        # onay bekleyen arka plan işlerinin sonuçları (oturum -> [iz])
+        self._sonuclar: Dict[str, list] = {}
+        self._kilit = threading.RLock()
 
     # ---------- başlatma ----------
     def baslat(self):
@@ -48,6 +52,15 @@ class GorevGonderici:
     def yeni_oturum(self, ad: str = "") -> str:
         oid = uuid.uuid4().hex[:10]
         return oid
+
+    # ---------- bekleyen sonuçları toplama (panel bunu yoklar) ----------
+    def sonuclari_al(self, oturum: str) -> list:
+        with self._kilit:
+            return self._sonuclar.pop(oturum, [])
+
+    def _sonuc_birak(self, oid: str, iz: dict):
+        with self._kilit:
+            self._sonuclar.setdefault(oid, []).append(iz)
 
     # ---------- ana akış ----------
     def isle(self, metin: str, oturum: Optional[str] = None,
@@ -67,7 +80,21 @@ class GorevGonderici:
             ek_bilgi = "\n".join(bulunan)
             iz["adimlar"].append({"adim": "hafıza sorgusu", "sonuc": ek_bilgi[:400]})
         elif modul_adi and modul_adi != "yok":
-            sonuc = TEKIL.modulu_calistir(modul_adi, karar.get("modul_girdisi", metin))
+            girdi = karar.get("modul_girdisi", metin)
+            # EL gibi yetenekler ONAY BEKLETEBİLİR → uzun süreli iş parçacığına
+            # alınır; panel /api/onaylar ile kartı gösterir, karar gelince devam
+            # edilir ve sonuç /api/sonuclar_bekleleyen ile sohbete düşer.
+            izin_istenen = modul_adi == "el" and ("hedef" in str(girdi)) \
+                or zorla_modul == "el" and ("hedef" in str(girdi) or "/" in str(girdi))
+            if izin_istenen:
+                threading.Thread(target=self._arka_plan_isle,
+                                 args=(metin, oid, karar, zorla_model),
+                                 daemon=True).start()
+                return {"onay_bekliyor": True, "oturum": oid,
+                        "yanit": f"'{modul_adi}' işlemi için onay bekleniyor… "
+                                 "Yukarıdaki karttan karar ver.",
+                        "karar": karar, "adimlar": [], "model": "", "hata": ""}
+            sonuc = TEKIL.modulu_calistir(modul_adi, girdi)
             if sonuc.get("basarili"):
                 ek_bilgi = sonuc.get("yanit", "")
                 iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
@@ -75,7 +102,35 @@ class GorevGonderici:
             else:
                 iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
                                       "hata": sonuc.get("hata", "")})
+            return self._model_gonder(metin, oid, iz, ek_bilgi, modul_adi,
+                                      karar, zorla_model)
 
+        return self._model_gonder(metin, oid, iz, ek_bilgi, modul_adi,
+                                  karar, zorla_model)
+
+    # ---------- arka planda (onay bekleyen) iş ----------
+    def _arka_plan_isle(self, metin: str, oid: str, karar: dict,
+                        zorla_model: str):
+        modul_adi = karar.get("modul", "yok")
+        girdi = karar.get("modul_girdisi", metin)
+        iz = {"karar": karar, "adimlar": [{"adim": f"yetenek: {modul_adi}",
+                                           "sonuc": "onaylandı"}]}
+        sonuc = TEKIL.modulu_calistir(modul_adi, girdi)
+        if sonuc.get("basarili"):
+            ek_bilgi = sonuc.get("yanit", "")
+            iz["adimlar"].append({"adim": f"{modul_adi} sonucu",
+                                  "sonuc": ek_bilgi[:400]})
+        else:
+            ek_bilgi = ""
+            iz["adimlar"].append({"adim": f"{modul_adi} sonucu",
+                                  "hata": sonuc.get("hata", sonuc.get("yanit", ""))})
+        tam = self._model_gonder(metin, oid, iz, ek_bilgi, modul_adi,
+                                 karar, zorla_model)
+        self._sonuc_birak(oid, tam)
+
+    # ---------- ortak model gönderimi ----------
+    def _model_gonder(self, metin: str, oid: str, iz: dict, ek_bilgi: str,
+                      modul_adi: str, karar: dict, zorla_model: str) -> dict:
         # hafızadan bağla
         self.hafiza.kaydet(oid, "user", metin)
         baglam = self.hafiza.baglam(oid)

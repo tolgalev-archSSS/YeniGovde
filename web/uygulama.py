@@ -17,6 +17,7 @@ from flask import Flask, jsonify, render_template, request
 from cekirdek import yapilandirma
 from cekirdek.gonderci import GorevGonderici
 from cekirdek.modul_iskeleti import TEKIL, TUR_ORGAN, TUR_YETENEK
+from cekirdek.onay import TEKIL_KAPICI, BEKLEME_SURESI_SN
 
 _KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(
@@ -99,10 +100,127 @@ def api_modul_etkinlik():
     return jsonify(TEKIL.etkinlik_ayarla(v["kod"], v["tur"], bool(v["etkin"])))
 
 
+# ---------------- modül TAK / SÖK (kaldırma merkezi) ----------------
+MODUL_SOK_DIZIN = os.path.join(yapilandirma.VERI_DIZIN, "sokulen_moduller")
+
+
+def _modul_klasoru(kod: str, tur: str):
+    taban = yapilandirma.ORGAN_DIZIN if tur == TUR_ORGAN else \
+        yapilandirma.YETENEK_DIZIN
+    yol = os.path.join(taban, kod)
+    return yol if os.path.isdir(yol) else ""
+
+
+@app.route("/api/modul_sok", methods=["POST"])
+def api_modul_sok():
+    """Modülü çalıştırmadan çıkarır ve klasörünü geri alınabilir arşive taşır.
+
+    Silme DEĞİL: veri/sokulen_moduller/<tur>/<kod> altına gider; 'geri kur'
+    ile aynı yerden geri takılır. Kalıcı silmek isteyen arşiv klasörünü elle
+    siler (ya da dosya yöneticisinden).
+    """
+    import shutil
+    v = request.get_json(force=True)
+    kod, tur = v.get("kod", ""), v.get("tur", "")
+    if not kod or tur not in (TUR_ORGAN, TUR_YETENEK):
+        return jsonify({"basarili": False, "neden": "kod/tur hatalı"})
+    kaynak = _modul_klasoru(kod, tur)
+    if not kaynak:
+        return jsonify({"basarili": False, "neden": f"{kod} klasörü bulunamadı"})
+    hedef_kok = os.path.join(MODUL_SOK_DIZIN, tur)
+    hedef = os.path.join(hedef_kok, kod)
+    os.makedirs(hedef_kok, exist_ok=True)
+    if os.path.exists(hedef):
+        hedef = hedef + "_" + time.strftime("%H%M%S")
+    try:
+        # önce etkinlikten çıkar → çalışan organ durdurulur, sözlükten düşer
+        TEKIL.etkinlik_ayarla(kod, tur, False)
+        shutil.move(kaynak, hedef)
+        TEKIL.tara(yeniden=True)
+        return jsonify({"basarili": True, "arsiv": hedef,
+                        "not": "Klasör arşive taşındı; 'Geri Kur' ile geri takılır."})
+    except Exception as e:
+        return jsonify({"basarili": False, "neden": str(e)[:200]})
+
+
+@app.route("/api/modul_geri_kur", methods=["POST"])
+def api_modul_geri_kur():
+    """Arşivdeki (sökülmüş) modülü eski yerine geri taşır."""
+    import shutil
+    v = request.get_json(force=True)
+    kod, tur = v.get("kod", ""), v.get("tur", "")
+    arsiv_kok = os.path.join(MODUL_SOK_DIZIN, tur)
+    if not os.path.isdir(arsiv_kok):
+        return jsonify({"basarili": False, "neden": "arşiv boş"})
+    adaylar = [d for d in sorted(os.listdir(arsiv_kok), reverse=True)
+               if d == kod or d.startswith(kod + "_")]
+    if not adaylar:
+        return jsonify({"basarili": False, "neden": f"arşivde {kod} yok"})
+    kaynak = os.path.join(arsiv_kok, adaylar[0])
+    taban = yapilandirma.ORGAN_DIZIN if tur == TUR_ORGAN else \
+        yapilandirma.YETENEK_DIZIN
+    hedef = os.path.join(taban, kod)
+    if os.path.exists(hedef):
+        return jsonify({"basarili": False, "neden": f"{hedef} zaten var"})
+    try:
+        shutil.move(kaynak, hedef)
+        TEKIL.tara(yeniden=True)
+        TEKIL.etkinlik_ayarla(kod, tur, True)
+        return jsonify({"basarili": True, "yol": hedef})
+    except Exception as e:
+        return jsonify({"basarili": False, "neden": str(e)[:200]})
+
+
+@app.route("/api/modul_sokulenler")
+def api_modul_sokulenler():
+    liste = []
+    for tur in (TUR_ORGAN, TUR_YETENEK):
+        kok = os.path.join(MODUL_SOK_DIZIN, tur)
+        if os.path.isdir(kok):
+            for ad in sorted(os.listdir(kok)):
+                liste.append({"arsiv_adi": ad, "kod": ad.split("_")[0],
+                              "tur": tur})
+    return jsonify({"sokulenler": liste})
+
+
+@app.route("/api/sonuclar_bekleyen")
+def api_sonuclar_bekleyen():
+    """Onay sonrası arka planda tamamlanan işlerin sohbet yanıtları."""
+    oid = request.args.get("oturum", "genel")
+    return jsonify({"sonuclar": GONDERCI.sonuclari_al(oid)})
+
+
 @app.route("/api/modul_cagir", methods=["POST"])
 def api_modul_cagir():
     v = request.get_json(force=True)
     return jsonify(TEKIL.modulu_calistir(v["kod"], v.get("girdi", "")))
+
+
+# ---------------- onay / izin sistemi (kapıcı) ----------------
+@app.route("/api/onaylar")
+def api_onaylar():
+    """Panel bu ucu ~2 sn'de bir yoklar; bekleyen kartları getirir."""
+    return jsonify({"bekleyenler": TEKIL_KAPICI.bekleyenleri_getir(),
+                    "sure_sn": BEKLEME_SURESI_SN})
+
+
+@app.route("/api/onay_ver", methods=["POST"])
+def api_onay_ver():
+    v = request.get_json(force=True)
+    return jsonify(TEKIL_KAPICI.yanit_ver(v.get("kimlik", ""),
+                                          v.get("secenek", "")))
+
+
+@app.route("/api/el_izinleri")
+def api_el_izinleri():
+    return jsonify({"kalici": TEKIL_KAPICI.defterdeki_izinler(),
+                    "oturum": TEKIL_KAPICI.oturum_izinleri()})
+
+
+@app.route("/api/el_izin_iptal", methods=["POST"])
+def api_el_izin_iptal():
+    v = request.get_json(force=True)
+    return jsonify({"basarili": TEKIL_KAPICI.izin_iptal(v.get("anahtar", ""))})
 
 
 # ---------------- sohbet ----------------
