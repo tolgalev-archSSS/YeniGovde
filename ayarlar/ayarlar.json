@@ -14,6 +14,18 @@
   },
   "organlar": {},
   "yetenekler": {},
+  "arama": {
+    "onay_serbest": true,
+    "ingilizce_ara": true,
+    "guncel_veri_birimi_acik": true,
+    "site_onceligi": [
+      "hepsiburada.com",
+      "trendyol.com",
+      "akakce.com",
+      "cimri.com"
+    ],
+    "varsayilan_adet": 6
+  },
   "hafiza": {
     "etkin": true,
     "motor": "yerel",

@@ -67,6 +67,16 @@ class GorevGonderici:
              zorla_model: str = "", zorla_modul: str = "") -> Dict[str, object]:
         oid = oturum or self.aktif_oturum
         self.aktif_oturum = oid
+
+        # Sistem komutları: /modul ara ... , /organ hafiza ... → arka plan/onay yolu
+        m = self.komut_mu(metin)
+        if m and not zorla_modul:
+            tur, kod, girdi = m.group(1).lower(), m.group(2).lower(), m.group(3).strip()
+            if kod in TEKIL.sozluk:
+                karar = {"kaynak": "komut", "modul": kod, "agirlik": 0.5,
+                         "model_secimi": "", "modul_girdisi": girdi or metin}
+                return self._modul_yol(kod, girdi or metin, oid, karar,
+                                       zorla_model, iz={"karar": karar, "adimlar": []})
         karar = self.karar.karar_ver(metin, oid)
         if zorla_modul:
             karar["modul"] = zorla_modul
@@ -81,31 +91,48 @@ class GorevGonderici:
             iz["adimlar"].append({"adim": "hafıza sorgusu", "sonuc": ek_bilgi[:400]})
         elif modul_adi and modul_adi != "yok":
             girdi = karar.get("modul_girdisi", metin)
-            # EL gibi yetenekler ONAY BEKLETEBİLİR → uzun süreli iş parçacığına
-            # alınır; panel /api/onaylar ile kartı gösterir, karar gelince devam
-            # edilir ve sonuç /api/sonuclar_bekleleyen ile sohbete düşer.
-            izin_istenen = modul_adi == "el" and ("hedef" in str(girdi)) \
-                or zorla_modul == "el" and ("hedef" in str(girdi) or "/" in str(girdi))
-            if izin_istenen:
-                threading.Thread(target=self._arka_plan_isle,
-                                 args=(metin, oid, karar, zorla_model),
-                                 daemon=True).start()
-                return {"onay_bekliyor": True, "oturum": oid,
-                        "yanit": f"'{modul_adi}' işlemi için onay bekleniyor… "
-                                 "Yukarıdaki karttan karar ver.",
-                        "karar": karar, "adimlar": [], "model": "", "hata": ""}
-            sonuc = TEKIL.modulu_calistir(modul_adi, girdi)
-            if sonuc.get("basarili"):
-                ek_bilgi = sonuc.get("yanit", "")
-                iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
-                                      "sonuc": ek_bilgi[:400]})
-            else:
-                iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
-                                      "hata": sonuc.get("hata", "")})
-            return self._model_gonder(metin, oid, iz, ek_bilgi, modul_adi,
-                                      karar, zorla_model)
+            return self._modul_yol(modul_adi, girdi, oid, karar, zorla_model, iz)
 
         return self._model_gonder(metin, oid, iz, ek_bilgi, modul_adi,
+                                  karar, zorla_model)
+
+    # ---------- modül çağrı yolu (onay/arka plan mantığı burada) ----------
+    def _modul_yol(self, modul_adi: str, girdi: str, oid: str,
+                   karar: dict, zorla_model: str, iz: dict) -> dict:
+        # Araştırmacı Kurulu: tarama uzun sürebilir + dış dünya ONAYI gerekir
+        # → daima arka planda işlenir; sonuç /api/sonuclar_bekleyen ile döner.
+        if modul_adi == "arastirmaci":
+            threading.Thread(target=self._arka_plan_isle,
+                             args=(girdi, oid, karar, zorla_model),
+                             daemon=True).start()
+            return {"onay_bekliyor": True, "arkaplan": True, "oturum": oid,
+                    "yanit": f"'{modul_adi}' kurulu taramaya başladı; "
+                             "dış dünya erişimi için onay kartı çıkabilir. "
+                             "Kanıt toplanınca ağır model derleyecek ve "
+                             "sonuç sohbete düşecek…",
+                    "karar": karar, "adimlar": [], "model": "", "hata": ""}
+        # EL gibi yetenekler ONAY BEKLETEBİLİR → uzun süreli iş parçacığına
+        # alınır; panel /api/onaylar ile kartı gösterir, karar gelince devam
+        # edilir ve sonuç /api/sonuclar_bekleyen ile sohbete düşer.
+        izin_istenen = modul_adi == "el" and ("hedef" in str(girdi)) \
+            or zorla_modul == "el" and ("hedef" in str(girdi) or "/" in str(girdi))
+        if izin_istenen:
+            threading.Thread(target=self._arka_plan_isle,
+                             args=(girdi, oid, karar, zorla_model),
+                             daemon=True).start()
+            return {"onay_bekliyor": True, "oturum": oid,
+                    "yanit": f"'{modul_adi}' işlemi için onay bekleniyor… "
+                             "Yukarıdaki karttan karar ver.",
+                    "karar": karar, "adimlar": [], "model": "", "hata": ""}
+        sonuc = TEKIL.modulu_calistir(modul_adi, girdi)
+        if sonuc.get("basarili"):
+            ek_bilgi = sonuc.get("yanit", "")
+            iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
+                                  "sonuc": ek_bilgi[:400]})
+        else:
+            iz["adimlar"].append({"adim": f"yetenek: {modul_adi}",
+                                  "hata": sonuc.get("hata", "")})
+        return self._model_gonder(girdi, oid, iz, ek_bilgi, modul_adi,
                                   karar, zorla_model)
 
     # ---------- arka planda (onay bekleyen) iş ----------
@@ -137,7 +164,18 @@ class GorevGonderici:
 
         model = zorla_model or karar.get("model_secimi") or \
             self.ayar["modeller"].get("rutin_model")
+        if modul_adi == "arastirmaci" and not zorla_model:
+            # kanıt dosyasını derlemek AĞIR iş → ağır modeli zorla
+            agir = self.ayar["modeller"].get("agir_model")
+            if agir:
+                model = agir
         sistem = SISTEM_TABAN
+        if modul_adi == "arastirmaci":
+            try:
+                from kurul import DERLEME_SISTEM as _ds
+                sistem = _ds
+            except Exception:
+                pass
         parcalar = [sistem]
         if baglam.get("kalici_bellek"):
             parcalar.append("KALICI BELLEK (kullanıcı hakkında):\n"

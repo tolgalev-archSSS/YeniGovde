@@ -53,7 +53,8 @@ function otomatikModelOner(ayarlar) {
 async function modulleriYenile() {
   const d = await api("/api/moduller");
   const organDiv = $("organ-liste"), yetDiv = $("yetenek-liste"), hz = $("hz-modul");
-  organDiv.innerHTML = ""; yetDiv.innerHTML = ""; hz.innerHTML = "";
+  const nodeDiv = $("node-liste") || document.createElement("div");
+  organDiv.innerHTML = ""; yetDiv.innerHTML = ""; hz.innerHTML = ""; nodeDiv.innerHTML = "";
   d.moduller.forEach(m => {
     const satir = document.createElement("div");
     satir.className = "modul-satir";
@@ -63,13 +64,24 @@ async function modulleriYenile() {
        <span class="ad" title="${(m.aciklama || "") + (m.hata ? "\nHATA: " + m.hata : "")}">
          ${m.ad}${m.hata ? ' ⚠️' : ''}${duruyor ? ' 🟢' : ''}</span>
        <label class="switch"><input type="checkbox" ${m.etkin ? "checked" : ""}
-         onchange="modulEtkin('${m.kod}','${m.tur}',this.checked)"><span class="slider"></span></label>`;
-    (m.tur === "organ" ? organDiv : yetDiv).appendChild(satir);
-    if (m.tur === "yetenek" && m.etkin) {
+         onchange="modulEtkin('${m.kod}','${m.tur}',this.checked)"><span class="slider"></span></label>
+       <button class="sok-btn" title="Çalıştırmeden çıkar; nodeller/kabul/ arşivine gider, oradan geri kurabilirsin"
+         onclick="modulSok('${m.kod}','${m.tur}')">✂ Sök</button>`;
+    if (m.tur === "organ") organDiv.appendChild(satir);
+    else if (m.tur === "node") nodeDiv.appendChild(satir);
+    else yetDiv.appendChild(satir);
+    if ((m.tur === "yetenek" || m.tur === "node") && m.etkin) {
       const o = document.createElement("option");
       o.value = m.kod; o.textContent = m.ad; hz.appendChild(o);
     }
   });
+}
+async function modulSok(kod, tur) {
+  if (!confirm(`"${kod}" (${tur}) sökülsün mü?\nKlasör SİLİNMEZ — nodeller/kabul/ içine taşınır ve Node Yönetimi'nden istediğin an geri kurabilirsin.`)) return;
+  const d = await post("/api/modul_sok", { kod, tur });
+  bilgiGoster(d.basarili ? ("Söküldü → " + (d.arsiv || "") + "\nKabul arşivinden geri kurabilirsin.")
+                         : ("Hata: " + (d.neden || "?")), "Modül Sökme");
+  modulleriYenile();
 }
 async function modulEtkin(kod, tur, etkin) {
   await post("/api/modul_etkinlik", { kod, tur, etkinlik: undefined, etkin });
@@ -243,8 +255,228 @@ function bilgiGoster(metin, baslik) {
 document.querySelectorAll(".modal-arka").forEach(m =>
   m.addEventListener("click", e => { if (e.target === m) m.classList.remove("acik"); }));
 
+/* ---------- onay kartları (kapıcı) ---------- */
+let aktifKart = null, kalanSn = 0, sayacTimer = null;
+
+async function onaylariYokla() {
+  try {
+    const d = await api("/api/onaylar");
+    if (!aktifKart && d.bekleyenler.length) {
+      aktifKart = d.bekleyenler[0];
+      kalanSn = d.sure_sn || 300;
+      onayKartGoster();
+    }
+    if (aktifKart && !d.bekleyenler.some(k => k.kimlik === aktifKart.kimlik)) {
+      // kart zaman aşımına uğradı veya başka yoldan kararlaştı
+      onayKartKapat();
+    }
+  } catch (e) { /* sunucu henüz hazır değil */ }
+}
+function onayKartGoster() {
+  $("onay-baslik").textContent = "🔐 Onay bekliyor: " + aktifKart.eylem;
+  $("onay-aciklama").textContent = aktifKart.aciklama || "";
+  $("onay-hedef").textContent = "Hedef: " + (aktifKart.hedef || "-") +
+    "  ·  Alan: " + (aktifKart.alan || "*") + "  ·  İstek: " + aktifKart.istek_zamani;
+  $("onay-kart").classList.add("acik");
+  clearInterval(sayacTimer);
+  sayacTimer = setInterval(() => {
+    kalanSn--;
+    $("onay-sayac").textContent = "Kalan süre: " + Math.max(0, kalanSn) + " sn";
+    if (kalanSn <= 0) onayKartKapat();
+  }, 1000);
+}
+function onayKartKapat() {
+  clearInterval(sayacTimer); $("onay-kart").classList.remove("acik");
+  aktifKart = null;
+}
+async function onayVer(secenek) {
+  if (!aktifKart) return;
+  const d = await post("/api/onay_ver", { kimlik: aktifKart.kimlik, secenek });
+  if (!d.basarili) bilgiGoster(d.neden || "Kart bulunamadı.", "Onay");
+  onayKartKapat();
+}
+setInterval(onaylariYokla, 2000);
+
+/* ---------- arka plan sonuçları (araştırmacı/el) ---------- */
+async function sonuclariYokla() {
+  try {
+    const d = await api("/api/sonuclar_bekleyen?oturum=" + encodeURIComponent(aktifOturum));
+    for (const s of d.sonuclar || []) {
+      mesajEkle("bot", s.yanit || ("⚠️ " + (s.hata || "(boş sonuç)")),
+                s.adimlar, s.karar, s.model);
+      await post("/api/gecmis_yaz", { oturum: aktifOturum,
+        icerik: s.yanit || ("HATA: " + (s.hata || "")), model: s.model || "" });
+    }
+    if ((d.sonuclar || []).length) oturumlariYenile();
+  } catch (e) { /* sessiz */ }
+}
+setInterval(sonuclariYokla, 3000);
+
+/* ---------- arama ayarları ---------- */
+async function aramaAyarGoster() {
+  const a = await api("/api/ayarlar");
+  $("ar-serbest").checked = !!a.arama.onay_serbest;
+  $("ar-ingilizce").checked = a.arama.ingilizce_ara !== false;
+  $("ar-adet").value = a.arama.varsayilan_adet || 6;
+  $("ar-guncelveri").checked = a.arama.guncel_veri_birimi_acik !== false;
+  const siteler = a.arama.site_onceligi || [];
+  $("ar-siteler").value = siteler.join(", ");
+  $("ar-site-oncelik").checked = siteler.length > 0;
+  modalAc("modal-arama");
+}
+async function aramaKaydet() {
+  let siteler = [];
+  if ($("ar-site-oncelik").checked)
+    siteler = $("ar-siteler").value.split(",").map(s => s.trim()).filter(Boolean);
+  await post("/api/ayarlar", { arama: {
+    onay_serbest: $("ar-serbest").checked,
+    ingilizce_ara: $("ar-ingilizce").checked,
+    varsayilan_adet: parseInt($("ar-adet").value) || 6,
+    guncel_veri_birimi_acik: $("ar-guncelveri").checked,
+    site_onceligi: siteler
+  }});
+  alert("Arama ayarları kaydedildi."); modalKapat("modal-arama");
+}
+
+/* ---------- sökülen arşivi / izin defteri ---------- */
+async function sokulenleriGoster() {
+  const d = await api("/api/modul_sokulenler");   // yeni yer: nodeller/kabul/
+  const div = $("arsiv-liste"); div.innerHTML = "";
+  if (!d.sokulenler || !d.sokulenler.length)
+    { div.textContent = "Kabul arşivi boş — hiç sökülmüş/dışarıdan yazılmış modül yok."; }
+  d.sokulenler.forEach(m => {
+    const k = document.createElement("div"); k.className = "model-kart";
+    k.innerHTML = `<b style="flex:1">${m.arsiv_adi}</b><span>${m.tur}</span>
+      <button class="btn kucuk" onclick="geriKur('${m.kod}','${m.tur}')">↩ Geri Kur</button>`;
+    div.appendChild(k);
+  });
+  modalAc("modal-arsiv");
+}
+async function geriKur(kod, tur) {
+  const d = await post("/api/modul_geri_kur", { kod, tur });
+  bilgiGoster(d.basarili ? `"${kod}" geri takıldı (${d.yol}).`
+                         : ("Hata: " + (d.neden || d.hata || "?")), "Geri Kurma");
+  modulleriYenile(); sokulenleriGoster();
+}
+
+/* ---------- NODE YÖNETİMİ (Ayarlar menüsü) ---------- */
+async function nodeYonetimiGoster() {
+  const d = await api("/api/node_listesi");
+  const yk = $("node-yuklu"), kb = $("node-kabul"), es = $("node-eski");
+  yk.innerHTML = ""; kb.innerHTML = ""; es.innerHTML = "";
+  if (!d.yuklu.length) yk.innerHTML = "<div class='not'>(yüklü node yok)</div>";
+  d.yuklu.forEach(n => {
+    const k = document.createElement("div"); k.className = "model-kart";
+    k.innerHTML =
+      `<b style="flex:1">${n.ad || n.kod}</b>
+       <span class="tur tur-node" style="background:#12303f;color:var(--vurgu)">node ${n.surum}</span>
+       <span title="${(n.aciklama||'').replace(/"/g,'&quot;')}">${n.etkin ? "🟢 etkin" : "⚪ pasif"}${n.hata ? " ⚠️" : ""}</span>
+       <label class="switch"><input type="checkbox" ${n.etkin ? "checked" : ""}
+         onchange="modulEtkin('${n.kod}','node',this.checked);nodeYonetimiGoster()"><span class="slider"></span></label>
+       <button class="sok-btn" onclick="modulSok('${n.kod}','node');setTimeout(nodeYonetimiGoster,400)">✂ Sök</button>`;
+    yk.appendChild(k);
+  });
+  if (!d.kabul.length) kb.innerHTML = "<div class='not'>(kabul klasörü boş — dışarıdan yazdığınız ya da söktüğünüz node'lar burada bekler)</div>";
+  d.kabul.forEach(c => {
+    const k = document.createElement("div"); k.className = "model-kart";
+    k.innerHTML =
+      `<b style="flex:1">${c.arsiv_adi}</b>
+       <span>${c.hazir ? "✅ paket hazır" : "⚠️ modul.py yok"}</span>
+       <button class="btn kucuk" ${c.hazir ? "" : "disabled"}
+         onclick="nodeOnayla('${c.arsiv_adi}')">✔ Onayla & Kur</button>
+       <button class="btn gris kucuk" onclick="geriKur('${c.kod}','node')">↩ Eski yerine</button>`;
+    kb.appendChild(k);
+  });
+  if (d.eski_arsiv && d.eski_arsiv.length) {
+    es.innerHTML = `<div class="not">⚠ Eski 'veri/sokulen_moduller' arşivinde ${d.eski_arsiv.length} kayıt var — yukarıdaki düğmeyle KABUL'e taşıyabilirsiniz.</div>`;
+  } else { es.innerHTML = ""; }
+  modalAc("modal-node");
+}
+async function nodeOnayla(ad) {
+  const d = await post("/api/node_onayla", { dosya: ad });
+  bilgiGoster(d.basarili ? (d.yanit || "Kurulum tamam.")
+                         : ("Reddedildi: " + (d.neden || d.hata || "?")), "Node Onayı");
+  modulleriYenile(); nodeYonetimiGoster();
+}
+async function eskiArsiviKabuleTasi() {
+  const d = await post("/api/eski_arsivi_kabule_tasi", {});
+  bilgiGoster(d.basarili
+    ? `${(d.tasinan || []).length} kayıt nodeller/kabul/'e taşındı.`
+    : ("Hata: " + (d.neden || "?")), "Arşiv Göçü");
+  nodeYonetimiGoster();
+}
+
+async function elIzinleriGoster() {
+  const d = await api("/api/el_izinleri");
+  let html = "<h4>Kalıcı izinler</h4>";
+  if (!d.kalici.length) html += "<div class='not'>(yok)</div>";
+  d.kalici.forEach(p => {
+    html += `<div class="model-kart"><b style="flex:1">${p.eylem} @ ${p.alan}</b>
+      <span>${p.eklendi || ""}</span>
+      <button class="btn reddet kucuk" onclick="izinIptal('${p.anahtar}')">İptal</button></div>`;
+  });
+  html += "<h4>Bu oturumun izinleri</h4>";
+  if (!d.oturum.length) html += "<div class='not'>(yok)</div>";
+  d.oturum.forEach(a => { html += `<div class="model-kart"><b style="flex:1">${a}</b></div>`; });
+  $("izin-liste").innerHTML = html;
+  modalAc("modal-izinler");
+}
+async function izinIptal(anahtar) {
+  await post("/api/el_izin_iptal", { anahtar }); elIzinleriGoster();
+}
+async function tumIzinleriSil() {
+  if (!confirm("Tüm kalıcı izinler silinsin mi?")) return;
+  const d = await api("/api/el_izinleri");
+  for (const p of d.kalici) await post("/api/el_izin_iptal", { anahtar: p.anahtar });
+  elIzinleriGoster();
+}
+
+/* ---------- üst panel: hava + kur (SADECE ilk açılışta çekilir) ---------- */
+let kurCache = {};   // {USD: 49.38, EUR: ..., GBP: ...} — açılış anlık değeri
+
+async function pencereVerisiCek() {
+  try {
+    const d = await api("/api/pencere_veri?sehir=istanbul");
+    const h = (d.hava || [])[0];
+    if (h) $("p-hava").textContent = "🌦 " + (h.baslik || "") + " · " +
+      String(h.ozet || "").slice(0, 90);
+    // guncel_veri_birimi başlık formatı: "1 USD = 49.38 TL"
+    (d.kur || []).forEach(k => {
+      const m = /1\s+(\w{3})\s*=\s*([\d.,]+)\s*TL/.exec(k.baslik || "");
+      if (m) kurCache[m[1]] = parseFloat(m[2].replace(",", "."));
+    });
+    if (kurCache.USD) $("p-kur").textContent = "💵 $" + kurCache.USD.toFixed(2) + " TL";
+  } catch (e) {
+    $("p-hava").textContent = "🌦 veri yok"; $("p-kur").textContent = "💵 ?";
+  }
+}
+
+async function dovusHesapla() {
+  const miktar = parseFloat($("p-dovus").value);
+  const tur = $("p-doviz-turu").value;
+  const sonuc = $("p-dovus-sonuc");
+  if (!(miktar > 0)) { sonuc.textContent = "bir sayı gir"; return; }
+  sonuc.textContent = "…";
+  try {
+    let d;
+    if (kurCache[tur]) {
+      // açılışta çekilen anlık kur ile hesapla (sunucuya gitmez)
+      d = { basarili: true, tl: miktar * kurCache[tur],
+            zaman: "açılış kuru " + kurCache[tur].toFixed(4) };
+    } else {
+      d = await post("/api/dovus_hesapla", { miktar, para: tur });
+      if (d.basarili && d.kur) kurCache[tur] = d.kur;
+    }
+    sonuc.textContent = d.basarili
+      ? `${miktar} ${tur} = ${d.tl.toFixed(2)} TL (${d.zaman || ""})`
+      : ("hata: " + (d.hata || "?"));
+  } catch (e) { sonuc.textContent = "hata: " + e.message; }
+}
+
 /* ---------- açılış ---------- */
 (async () => {
+  pencereVerisiCek();          // hava+kur: bir kez, bekletmeden
   await durumuCek();
   gecmisiYukle();
+  onaylariYokla();
 })();

@@ -1,0 +1,1 @@
+BILGI={"kod":"meu_yardimci"}

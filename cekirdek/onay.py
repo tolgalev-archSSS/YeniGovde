@@ -39,6 +39,17 @@ TEMIZLIK_ARALIGI_SN = 60
 # Onay sorulmadan geçen hafif eylemler
 SERBEST_EYLEMLER = {"dosya_oku", "klasor_listele", "program_ac", "program_listele"}
 
+# Dış dünyaya açılan eylemler (arama modülleri) — kullanıcı "serbest" yapmazsa sorulur
+DIS_DUNYA_EYLEMLERI = {"web_ara", "sayfa_oku", "kurul_ara", "detayli_ara"}
+
+
+def dis_dunya_serbest_mi() -> bool:
+    """ayarlar/arama.onay_serbest == True ise dış dünya işlemleri onaysız geçer."""
+    try:
+        return bool(yapilandirma.yukle().get("arama", {}).get("onay_serbest"))
+    except Exception:
+        return False
+
 # Silinemeyecek / değiştirilemeyecek kritik yol parçaları (küçük harf)
 KIRMIZI_CIZGI_PARCALARI = [
     "c:/windows", "c:\\windows", "/etc", "/boot", "/sys", "/proc", "/usr",
@@ -134,6 +145,9 @@ class IzinKapicisi:
             # 2) serbest sınıf
             if eylem in SERBEST_EYLEMLER:
                 return {"onayli": True, "kaynak": "serbest_sinif", "neden": ""}
+            # 2b) dış dünya eylemleri: kullanıcı ayarlarda serbest bıraktıysa sorulmaz
+            if eylem in DIS_DUNYA_EYLEMLERI and dis_dunya_serbest_mi():
+                return {"onayli": True, "kaynak": "ayar_serbest", "neden": ""}
             # 3) izin defteri (kalıcı / oturum)
             anahtar = self._anahtar(eylem, alan)
             tam_yol_anahtari = self._anahtar(eylem, "*")

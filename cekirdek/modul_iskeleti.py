@@ -30,6 +30,15 @@ from . import yapilandirma
 
 TUR_ORGAN = "organ"
 TUR_YETENEK = "yetenek"
+TUR_NODE = "node"      # nodeller/ klasöründeki takılabilir yetenek paketi
+
+# tur → ayar sözlüğü anahtarı
+_AYAR_ANAHTARI = {TUR_ORGAN: "organlar", TUR_YETENEK: "yetenekler",
+                  TUR_NODE: "nodeller"}
+
+
+def _ayar_anahtari(tur: str) -> str:
+    return _AYAR_ANAHTARI.get(tur, "yetenekler")
 
 
 class ModulYukleyici:
@@ -45,6 +54,12 @@ class ModulYukleyici:
             return bulunan
         for isim in sorted(os.listdir(yol)):
             klasor = os.path.join(yol, isim)
+            # Node arşiv alt klasörleri (kabul/sokulen/indirilen) MODÜL DEĞİLDİR:
+            # nodeller/kabul gibi içlerinde modül klasörü barındıran dizinler
+            # taranırken kendileri kayda geçmez; ancak nodeller/<kod>/ düz
+            # node'ları yine de bulunur (kabul/sokulen adlı node olmaz).
+            if tur == "node" and isim in ("kabul", "sokulen", "indirilen"):
+                continue
             bilgi_dosya = os.path.join(klasor, "modul_bilgisi.py")
             ana_dosya = os.path.join(klasor, "modul.py")
             if os.path.isdir(klasor) and os.path.exists(bilgi_dosya):
@@ -68,7 +83,8 @@ class ModulYukleyici:
                 self._organ_calisan &= set()  # diskte olmayan kalmaz
             kayitlar = []
             adaylar = (self._klasoru_tara(yapilandirma.ORGAN_DIZIN, TUR_ORGAN)
-                       + self._klasoru_tara(yapilandirma.YETENEK_DIZIN, TUR_YETENEK))
+                       + self._klasoru_tara(yapilandirma.YETENEK_DIZIN, TUR_YETENEK)
+                       + self._klasoru_tara(yapilandirma.NODE_DIZIN, TUR_NODE))
             for a in adaylar:
                 hata = None
                 try:
@@ -91,7 +107,7 @@ class ModulYukleyici:
 
             ayarlar = yapilandirma.yukle()
             for k in kayitlar:
-                havuz = ayarlar["organlar"] if k["tur"] == TUR_ORGAN else ayarlar["yetenekler"]
+                havuz = ayarlar.get(_ayar_anahtari(k["tur"]), {})
                 # tanınmayan yeni modül varsayılan olarak KURULU+AKTİF kabul edilir
                 k["etkin"] = bool(havuz.get(k["kod"], True))
                 s = self._moduller.get(k["kod"])
@@ -110,6 +126,13 @@ class ModulYukleyici:
         if spec is None or spec.loader is None:
             raise RuntimeError("modul.py yüklenemedi")
         mod = importlib.util.module_from_spec(spec)
+        # Modül kendi klasörünü sys.path'e ekleyebilsin diye kaydet
+        # (arastirmaci gibi çok dosyalı modüller için; sökme sırasında
+        #  klasör silinince bu yol geçersiz kalır ama zararsızdır)
+        import os as _os
+        _klasor = _os.path.dirname(aday["ana_dosya"])
+        if _klasor not in __import__("sys").path:
+            __import__("sys").path.insert(0, _klasor)
         spec.loader.exec_module(mod)
         if not hasattr(mod, "sozlesme"):
             raise RuntimeError("modülde 'sozlesme' sözlüğü yok")
@@ -165,7 +188,7 @@ class ModulYukleyici:
             self._organ_calisan.discard(kod)
 
     def etkinlik_ayarla(self, kod: str, tur: str, acik: bool) -> dict:
-        alan = "organlar" if tur == TUR_ORGAN else "yetenekler"
+        alan = _ayar_anahtari(tur)
         yapilandirma.guncelle({alan: {kod: bool(acik)}})
         s = self._moduller.get(kod)
         if s:

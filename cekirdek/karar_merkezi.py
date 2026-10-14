@@ -39,13 +39,29 @@ class SiniflandiriciYedek:
         puan = min(1.0, 0.35 * agir + uzunluk_puani + kod_bolmesi * 0.5 - 0.3 * rutin)
         return round(max(0.0, puan), 2)
 
+    def agirlik_cezasiz_mi(self, tahmin: str) -> bool:
+        return tahmin != "arastirmaci"
+
     def gorev_tahmini(self, metin: str) -> str:
         t = metin.lower()
+        if any(k in t for k in ["node bul", "node kur", "node ara", "eklenti bul",
+                                "plugin bul", "modül bul", "açık kaynak node",
+                                "şu işi yapan bir node", "böyle bir node",
+                                "node yönet", "kabul klasörü"]):
+            return "node_bulucu"
         if any(k in t for k in ["dosya", "klasör", "kaydet", "sil", "çöp", "taşı",
                                 "program aç", "uygulama aç", "süreç", "process",
                                 ".txt", ".md", ".pdf", ".docx", "masaüstü",
                                 "belgelerim", "indirilenler", "not defteri"]):
             return "el"
+        if any(k in t for k in ["karşılaştır", "kıyasla", "derin ara", "detaylı ara",
+                                "perspektif", "makale", "atıf", "arxiv", "github",
+                                "açık kaynak", "repo", "ürün öner", "bütçe",
+                                "tufan", "mitoloji", "kutsal kitap", "sosyal medya",
+                                "kişi ara", "profil", "haber", "son dakika",
+                                "gündem", "bakış açısı", "incele", "puanla",
+                                "yorumları"]):
+            return "arastirmaci"
         if any(k in t for k in ["ara", "güncel", "haber", "internet", "web", "fiyat"]):
             return "arama"
         if any(k in t for k in ["çıktı klasörüne yaz", "raporu veri"]):
@@ -60,7 +76,7 @@ SADECE geçerli bir JSON nesnesi döndür, başka hiçbir şey yazma. Şema:
 {
  "agirlik": 0.0-1.0,          # 1.0 = çok ağır iş (kod/planlama/derin analiz)
  "tur": "sohbet|kod|plan|analiz|arama|dosya|hatirlama|diger",
- "modul": "yok|el|arama|dosya_yazma|hafiza_ara",
+ "modul": "yok|el|arama|dosya_yazma|hafiza_ara|node_bulucu",
  "modul_girdisi": {"eylem":"...","hedef":"...","icerik":"..."} ya da düz string,
  "gerekce": "tek cümle Türkçe"
 }
@@ -69,6 +85,12 @@ Kurallar:
 - Kod yazma/düzeltme/tasarım, çok adımlı plan, derin analiz → agirlik >= 0.7.
 - Güncel/dış dünya bilgisi gerekiyorsa (hava, haber, fiyat, son gelişme)
   modul=arama yap ve aranacak sorguyu modul_girdisi'ne yaz.
+- KARŞILAŞTIRMA, DERİN ARAŞTIRMA, akademik makale, GitHub/açık kaynak proje
+  taraması, kişi/profil araştırması, ürün önerisi, çok kaynaklı incelemesi veya
+  kültürel/dinî motif kıyası (ör. "Nuh tufanı farklı kaynaklarda") istenirse
+  modul=arastirmaci ve modul_girdisi JSON olsun:
+  {"eylem":"kurul_ara|detayli_ara|sayfa_oku","sorgu":"...","adet":6}
+  detaylı/çok dilli/perspektifli istek → eylem=detayli_ara, agirlik>=0.7 yap.
 - Bilgisayarda dosya/klasör/program işlemi istenirse modul=el ve
   modul_girdisi bir JSON nesnesi olsun; eylem şunlardan biri:
   dosya_oku, klasor_listele, dosya_yaz, dosya_duzelt, dosya_sil, dosya_tasi,
@@ -76,6 +98,13 @@ Kurallar:
   Kullanıcının ev dizini ~ ile gösterilir (ör. "~/Desktop/not.txt").
   İçerik bilinemiyorsa icerik alanını boş bırak (model sonra doldurur).
 - Geçmiş sohbet referansı istenirse modul=hafiza_ara.
+- KULLANICI BİR İŞ YAPAN YENİ YETENEK/NODE İSTİYORSA ("şu işi yapan bir node
+  bul", "bunu yapabilen açık kaynak var mı", "sisteme entegre et") →
+  modul=node_bulucu, modul_girdisi gereksinim cümlesinin kendisi olsun.
+  Node indirme/kurma onay kartına bağlıdır; kullanıcı seçince
+  {"eylem":"indir","secenek":{...}} JSON'u ile tekrar çağrılır.
+- Node kabul/onaylama/listeleme işleri de modul=node_bulucu:
+  {"eylem":"kabul_listele"} veya {"eylem":"kabul_onayla","dosya":"<ad>"}.
 Şimdi analiz et:"""
 
 

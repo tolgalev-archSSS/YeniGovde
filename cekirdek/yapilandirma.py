@@ -21,6 +21,10 @@ HAFIZA_DIZIN = os.path.join(VERI_DIZIN, "hafiza")
 MODUL_DIZIN = os.path.join(KOK_DIZIN, "moduller")
 ORGAN_DIZIN = os.path.join(KOK_DIZIN, "organlar")
 YETENEK_DIZIN = os.path.join(KOK_DIZIN, "yetenekler")
+# Node yönetimi: yüklü node'lar ayrı klasörde; dışarıdan yazılanlar KABUL'da
+NODE_DIZIN = os.path.join(KOK_DIZIN, "nodeller")
+KABUL_DIZIN = os.path.join(NODE_DIZIN, "kabul")
+SOKULEN_DIZIN = os.path.join(NODE_DIZIN, "sokulen")
 
 VARSAYILAN_AYARLAR: Dict[str, Any] = {
     "sunucu": {"ip": "127.0.0.1", "port": 8765},
@@ -33,6 +37,14 @@ VARSAYILAN_AYARLAR: Dict[str, Any] = {
     },
     "organlar": {},              # organ adı -> True/False (sürekli aktif)
     "yetenekler": {},            # yetenek adı -> True/False (kurulu mu)
+    "arama": {
+        "onay_serbest": False,   # True → dış dünya işlemleri onaysız yapılır
+        "ingilizce_ara": True,   # TR sorgunun yanında İngilizce de tara
+        "guncel_veri_birimi_acik": True,  # hava/döviz birimi her aramada denensin mi?
+        "site_onceligi": ["hepsiburada.com", "trendyol.com", "akakce.com",
+                          "cimri.com"],   # ürün aramasında önce listelenecek TR siteleri
+        "varsayilan_adet": 6,
+    },
     "hafiza": {
         "etkin": True,
         "motor": "yerel",        # yerel | mem0
@@ -91,5 +103,6 @@ def guncelle(guncel: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def gerekli_dizinler():
-    for d in (AYAR_DIZIN, VERI_DIZIN, LOG_DIZIN, SOHBET_DIZIN, HAFIZA_DIZIN):
+    for d in (AYAR_DIZIN, VERI_DIZIN, LOG_DIZIN, SOHBET_DIZIN, HAFIZA_DIZIN,
+              NODE_DIZIN, KABUL_DIZIN, SOKULEN_DIZIN):
         os.makedirs(d, exist_ok=True)

@@ -296,9 +296,11 @@ class HafizaOrgan:
                     satirlar.extend(fh.read().splitlines())
         return satirlar
 
-    def kalici_ekle(self, yeni_satirlar: str):
+    def kalici_ekle(self, yeni_satirlar):
+        if isinstance(yeni_satirlar, str):
+            yeni_satirlar = [yeni_satirlar]
         if yeni_satirlar:
-            self.yerel.bellek_ekle(yeni_satirlar.splitlines())
+            self.yerel.bellek_ekle(list(yeni_satirlar))
 
 
 # Modül yükleyicinin beklediği sözleşme sözlüğü (organ olarak kayıt).

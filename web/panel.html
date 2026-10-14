@@ -95,7 +95,9 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
   <div class="menu"><button>Ayarlar ▾</button>
     <div class="alt">
       <button onclick="modalAc('modal-ayar')">Model ve Sistem Ayarları</button>
+      <button onclick="nodeYonetimiGoster()">Node Yönetimi (Kur / Sök / Geri Kur)</button>
       <button onclick="modalAc('modal-hafiza')">Hafıza Ayarları</button>
+      <button onclick="aramaAyarGoster()">Arama Ayarları (İngilizce + Onay)</button>
     </div>
   </div>
   <div class="menu"><button>Modüller ▾</button>
@@ -103,10 +105,7 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
       <button onclick="modulleriYenile()">Kurulu Modülleri Tara</button>
       <button onclick="sokulenleriGoster()">Sökülen Arşivi Aç / Geri Kur</button>
       <button onclick="elIzinleriGoster()">El İzin Defteri (kalıcı/oturum)</button>
-      <button onclick="bilgiGoster('MODÜL EKLEMEK:\nyetenekler/<kod>/ veya organlar/<kod>/ klasörü aç;\nmodul_bilgisi.py + modul.py (sozlesme sözlüğü) yeter. ' +
-        'Panelde 'Tara' ile anında görünür.\n\nMODÜL SÖKME:\nsoldaki listedeki 🗑 düğmesi → modül durdurulur ve klasörü ' +
-        'veri/sokulen_moduller arşivine taşınır (silinmez!). ' +
-        '\'Sökülen Arşivi Aç'tan GERİ KURabilirsiniz.')\">Nasıl modül eklenir / sökülür?</button>
+      <button id="btn-modul-yol" onclick="modulKlasorYoluGoster()">Modül Klasör Yolları</button>
     </div>
   </div>
   <div class="menu"><button>Sistem ▾</button>
@@ -117,6 +116,20 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
     </div>
   </div>
   <div id="durum-top">
+    <!-- ÜST PANEL: hava + kur — SADECE ilk açılışta çekilir (pencereVerisiCek) -->
+    <span id="p-hava" title="İstanbul hava (açılışta güncellenir)">🌦 …</span>
+    <span id="p-kur" title="USD/TRY anlık kur">💵 …</span>
+    <input type="number" id="p-dovus" placeholder="miktar" min="0" step="any"
+           style="width:74px;min-width:0;padding:4px 6px;font-size:12.5px"
+           onkeydown="if(event.key==='Enter')dovusHesapla()"
+           title="Bir sayı yaz (ör. 5) → çevir butonu anlık kurla hesaplar">
+    <select id="p-doviz-turu" style="min-width:0;width:auto;padding:4px;font-size:12px"
+            title="Hangi para biriminden TL'ye?">
+      <option value="USD">USD→TL</option><option value="EUR">EUR→TL</option>
+      <option value="GBP">GBP→TL</option>
+    </select>
+    <button class="btn kucuk" onclick="dovusHesapla()">Çevir =</button>
+    <span id="p-dovus-sonuc" style="color:var(--yesil)"></span>
     <span><i id="n-oklama" class="durum-nokta kotu"></i>Ollama</span>
     <span><i id="n-model" class="durum-nokta orta"></i>Modeller</span>
     <span id="saat"></span>
@@ -137,6 +150,10 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
     <div class="bolum">
       <h3>Yetenekler <span style="font-weight:400;text-transform:none">(çağrılınca çalışır)</span></h3>
       <div id="yetenek-liste"></div>
+    </div>
+    <div class="bolum">
+      <h3>Node'lar <span style="font-weight:400;text-transform:none">(nodeller/ — tak-sök)</span></h3>
+      <div id="node-liste"></div>
     </div>
     <div class="bolum">
       <h3>Hızlı Yetenek Çağır</h3>
@@ -194,6 +211,78 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
 <div class="modal-arka" id="modal-bilgi"><div class="modal">
   <h2 id="bilgi-baslik">Bilgi</h2><div id="bilgi-icerik" style="font-size:13.5px;line-height:1.6;white-space:pre-wrap"></div>
   <hr class="cizgi"><button class="btn gris" onclick="modalKapat('modal-bilgi')">Kapat</button>
+</div></div>
+
+<!-- ONAY KARTI (dış dünyaya açılan işlemler için) -->
+<div class="onay-kart" id="onay-kart">
+  <h4 id="onay-baslik">Onay bekliyor</h4>
+  <div id="onay-aciklama" style="font-size:13px;margin-bottom:8px"></div>
+  <div class="hedef" id="onay-hedef"></div>
+  <div class="butonlar">
+    <button class="btn onay kucuk" onclick="onayVer('tek')">✔ Yalnız bu sefer</button>
+    <button class="btn kucuk" onclick="onayVer('oturum')">🔓 Bu oturum boyunca</button>
+    <button class="btn kucuk" onclick="onayVer('kalici')">♾ Kalıcı izin</button>
+    <button class="btn reddet kucuk" onclick="onayVer('ret')">✖ Reddet</button>
+  </div>
+  <div class="not" id="onay-sayac"></div>
+</div>
+
+<!-- ARAMA AYARLARI MODALI -->
+<div class="modal-arka" id="modal-arama"><div class="modal">
+  <h2>🌐 Arama Ayarları</h2>
+  <div class="satir"><label>Dış dünya erişimi onaysız serbest olsun mu?</label>
+    <span class="switch"><input type="checkbox" id="ar-serbest"><span class="slider"></span></span></div>
+  <div class="not">Kapalıysa her arama/sayfa okuma işleminde panelde onay kartı çıkar; "bu oturum boyunca" seçersen bir daha sormaz.</div>
+  <div class="satir"><label>İngilizce destekli arama (TR + EN birlikte)</label>
+    <span class="switch"><input type="checkbox" id="ar-ingilizce"><span class="slider"></span></span></div>
+  <div class="not">Açıkken web araması Türkçe sorgunun yanında İngilizce çevirisini de tarar; sonuçlar tekilleştirilip dil etiketiyle gelir. Detaylı aramada zaten her zaman aktiftir.</div>
+  <div class="satir"><label>Varsayılan sonuç sayısı</label><input type="number" id="ar-adet" min="3" max="20" style="width:90px"></div>
+  <div class="satir"><label>Hava/döviz birimi her aramada denensin mi?</label>
+    <span class="switch"><input type="checkbox" id="ar-guncelveri"><span class="slider"></span></span></div>
+  <div class="not">Açıkken kur/hava gibi sayısal sorular blog yazılarından değil birebir API'den (open-meteo, exchangerate) zaman damgalı gelir; eşleşme yoksa sessizce boş döner.</div>
+  <div class="satir"><label>Ürün sitesine göre arama</label><input type="checkbox" id="ar-site-oncelik" checked style="width:auto"><label for="ar-site-oncelik" style="display:inline;margin-left:6px">öncelikli siteleri kullan</label></div>
+  <div class="satir"><label>Öncelikli siteler (virgülle)</label><input type="text" id="ar-siteler" style="flex:1" placeholder="hepsiburada.com, trendyol.com, akakce.com, cimri.com"></div>
+  <div class="not">Ürün aramasında bu sitelerdeki sonuçlar öne alınır ve model kodu eşleştirme etiketiyle gelir. İstersen ekleyip çıkarabilirsin.</div>
+  <hr class="cizgi">
+  <button class="btn" onclick="aramaKaydet()">Kaydet</button>
+  <button class="btn gris" onclick="modalKapat('modal-arama')">Kapat</button>
+</div></div>
+
+<!-- SÖKÜLEN MODÜL ARŞİVİ MODALI (artık nodeller/kabul/ içinde yaşar) -->
+<div class="modal-arka" id="modal-arsiv"><div class="modal">
+  <h2>🗃 Kabul Arşivi (Sökülenler + Dışarıdan Yazılanlar)</h2>
+  <div class="not">Sökülen modüller silinmez; <b>nodeller/kabul/</b> klasörüne taşınır ve buradan tek tıkla geri kurulur. Dışarıdan elle yazdığınız node'ları da bu klasöre koyup onaylayabilirsiniz.</div>
+  <div id="arsiv-liste" style="margin:10px 0"></div>
+  <button class="btn gris" onclick="modalKapat('modal-arsiv')">Kapat</button>
+</div></div>
+
+<!-- NODE YÖNETİMİ MODALI (Ayarlar menüsünden açılır) -->
+<div class="modal-arka" id="modal-node"><div class="modal" style="max-width:760px;width:94vw">
+  <h2>🧩 Node Yönetimi</h2>
+  <div class="not">
+    • <b>Yüklü Node'lar</b>: nodeller/ klasöründe, sol menüde görünür.<br>
+    • <b>Kabuldekiler</b>: nodeller/kabul/ — dışarıdan yazdıklarınız veya söktükleriniz burada bekler; "Onayla & Kur" ile yüklüye geçer.<br>
+    • Bir node'u <b>sökmek</b> için sol panel ya da aşağıdaki "Sök" düğmesi: klasör silinmez, kabul/'e döner → istediğiniz an geri kurabilirsiniz.
+  </div>
+  <h4 style="margin-top:12px;color:var(--vurgu)">Yüklü Node'lar</h4>
+  <div id="node-yuklu"></div>
+  <h4 style="margin-top:14px;color:var(--sari)">Kabul Klasöründekiler (nodeller/kabul)</h4>
+  <div id="node-kabul"></div>
+  <div id="node-eski" style="margin-top:10px"></div>
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn kucuk" onclick="eskiArsiviKabuleTasi()">Eski 'sokülen_moduller' arşivini KABUL'e taşı</button>
+    <button class="btn gris" onclick="nodeYonetimiGoster()">↻ Yenile</button>
+    <button class="btn gris" onclick="modalKapat('modal-node')">Kapat</button>
+  </div>
+</div></div>
+
+<!-- EL İZİN DEFTERİ MODALI -->
+<div class="modal-arka" id="modal-izinler"><div class="modal">
+  <h2>🔑 El / Onay İzin Defteri</h2>
+  <div class="not">Kalıcı izinler burada listelenir; istediğinizi iptal edebilirsiniz. Oturum izinleri sistem kapanınca kendiliğinden düşer.</div>
+  <div id="izin-liste" style="margin:10px 0"></div>
+  <button class="btn reddet kucuk" onclick="tumIzinleriSil()">Tüm kalıcı izinleri sil</button>
+  <button class="btn gris" onclick="modalKapat('modal-izinler')">Kapat</button>
 </div></div>
 
 <script src="/static/panel.js"></script>
