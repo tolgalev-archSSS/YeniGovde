@@ -139,6 +139,10 @@ class ModulYukleyici:
         s = dict(mod.sozlesme)
         s.setdefault("kod", aday["kod"])
         s.setdefault("tur", aday["tur"])
+        # panel_bolumu() gibi modül-nesnesi fonksiyonları sozlesme'de
+        # bulunmayabilir; sys.modules'taki gerçek nesneden yakalanır
+        if not callable(s.get("panel_bolumu")) and hasattr(mod, "panel_bolumu"):
+            s["panel_bolumu"] = mod.panel_bolumu
         return s
 
     # ---------- organ yaşam döngüsü ----------

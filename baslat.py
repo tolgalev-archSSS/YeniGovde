@@ -116,7 +116,10 @@ def kontrol_modeller():
 def sunucuyu_ac(ip_port=None):
     adim(6, "Üretim paneli başlatılıyor...")
     from cekirdek import yapilandirma
-    from web.uygulama import app
+    from web.uygulama import app, node_arayuzlari_acilista_yukle
+    # Katman C: yüklü node'ların flask_blueprint() arayüzleri İLK İSTEKTEN
+    # ÖNCE bağlanmalı (Flask, request sonrası register_blueprint'u reddeder).
+    node_arayuzlari_acilista_yukle()
     a = yapilandirma.yukle()["sunucu"]
     ip, port = a["ip"], int(a["port"])
     url = f"http://{ip}:{port}"

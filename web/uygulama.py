@@ -416,9 +416,82 @@ def api_node_onayla():
         shutil.move(kaynak, hedef)
         TEKIL.tara(yeniden=True)
         return jsonify({"basarili": True, "yol": hedef, "kod": hedef_kod,
-                        "yanit": f"✅ '{os.path.basename(hedef)}' yüklendi."})
+                        "yanit": f"✅ '{os.path.basename(hedef)}' yüklendi."
+                                 + node_arayuz_kaydet(hedef_kod)})
     except Exception as e:
         return jsonify({"basarili": False, "neden": str(e)[:200]})
+
+
+def node_arayuz_kaydet(kod: str) -> str:
+    """Katman C: nodeller/<kod>/modul.py'deki flask_blueprint()'u panele bağlar.
+
+    app.first_request hook'u ile GEÇ kaydetme yapılmaz; Flask yalnızca
+    ilk request'ten önce register_blueprint kabul eder. Bu yüzden hem
+    onay anında hem de sunucu açılışında (node_dogrula_acilista) çağrılır.
+    """
+    yol = os.path.join(yapilandirma.NODE_DIZIN, kod, "modul.py")
+    if not os.path.exists(yol):
+        return ""
+    try:
+        import importlib.util as _iu
+        spec = _iu.spec_from_file_location(f"nodebp_{kod}", yol)
+        m = _iu.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        if not callable(getattr(m, "flask_blueprint", None)):
+            return ""
+        bp = m.flask_blueprint()
+        if bp is None or kod in _NODE_BLUEPRINTLER:
+            return "" if kod in _NODE_BLUEPRINTLER else " (blueprint yok)"
+        app.register_blueprint(bp)
+        _NODE_BLUEPRINTLER.append(kod)
+        return f" Arayüz eklendi: /node/{kod}"
+    except Exception as e:
+        return f" (blueprint atlandı: {type(e).__name__}: {str(e)[:60]})"
+
+
+def node_arayuzlari_acilista_yukle():
+    """Sunucu ilk isteği görmeden önce tüm yüklü node'ların blueprint'lerini bağlar."""
+    kok = yapilandirma.NODE_DIZIN
+    if os.path.isdir(kok):
+        for ad in sorted(os.listdir(kok)):
+            if os.path.isdir(os.path.join(kok, ad)) and ad not in (
+                    "kabul", "sokulen", "indirilen"):
+                node_arayuz_kaydet(ad)
+
+
+
+
+@app.route("/api/node_arayuzler")
+def api_node_arayuzler():
+    """Katman B widget bildirimi: sozlesme['panel_widget'] + panel_bolumu().
+
+    Panel.js bunları sol menünün altına (aside_alt) veya üst bara ekler;
+    HTML'de <script> varsa güvenlik gereği YANSITILMAZ (istemci boş görür).
+    """
+    cihazlar = []
+    for kod, oz in TEKIL.sozluk.items():
+        bildirim = oz.get("panel_widget")
+        if not isinstance(bildirim, dict):
+            continue
+        html_parca = ""
+        try:
+            # panel_bolumu ya sozlesme'den enjekte edildi ya da sys.modules'ta
+            fonk = oz.get("panel_bolumu")
+            if not callable(fonk):
+                import sys as _sys
+                mod = _sys.modules.get(f"modul_{kod}")
+                fonk = getattr(mod, "panel_bolumu", None) if mod else None
+            if callable(fonk):
+                html_parca = str(fonk())
+                if re.search(r"<\s*script|on(?:click|load|error)\s*=", html_parca,
+                             flags=re.I):
+                    html_parca = "(güvensiz HTML: <script>/on-event engellendi)"
+        except Exception as e:
+            html_parca = f"(panel_bolumu hatası: {str(e)[:80]})"
+        cihazlar.append({"kod": kod, "ad": oz.get("ad", ""),
+                         "widget": bildirim, "html": html_parca})
+    return jsonify({"arayuzler": cihazlar,
+                    "blueprintler": list(_NODE_BLUEPRINTLER)})
 
 
 @app.route("/api/eski_arsivi_kabule_tasi", methods=["POST"])

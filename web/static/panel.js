@@ -506,10 +506,61 @@ async function dovusHesapla() {
   } catch (e) { sonuc.textContent = "hata: " + e.message; }
 }
 
+/* ---------- Katman B: node widget'ları (sozlesme['panel_widget']) ---------- */
+let widgetZamanlayicilar = {};
+
+async function widgetlariYukle() {
+  let d;
+  try { d = await api("/api/node_arayuzler"); } catch (e) { return; }
+  const alan = $("node-widget-alani");
+  if (!alan) return;
+  // değişim yoksa DOM'a dokunma (periyodik yenilemede titremeyi önler)
+  const imza = JSON.stringify(d.arayuzler || []);
+  if (alan.dataset.imza === imza) return;
+  alan.dataset.imza = imza;
+  Object.values(widgetZamanlayicilar).forEach(clearInterval);
+  widgetZamanlayicilar = {};
+  alan.innerHTML = "";
+  (d.arayuzler || []).forEach(a => {
+    const sarmal = document.createElement("div");
+    sarmal.className = "bolum";
+    sarmal.dataset.widgetKod = a.kod;
+    sarmal.innerHTML = `<h3>${escapeHtml(a.ad || a.kod)} <span style="font-weight:400;text-transform:none">(node)</span></h3>` +
+      (a.html || '<span class="not">widget HTML üretmedi</span>');
+    alan.appendChild(sarmal);
+    const per = parseInt((a.widget || {}).periyot_sn || 0);
+    if (per > 0)   // periyodik tazeleme: node'un calistir()'ına "tazele" gider
+      widgetZamanlayicilar[a.kod] = setInterval(() => widgetCagir(a.kod, "tazele"), per * 1000);
+  });
+}
+async function widgetCagir(kod, girdi) {
+  const s = await post("/api/modul_cagir", { kod, girdi, oturum: aktifOturum });
+  if (s.onay_kartlari && s.onay_kartlari.length && !aktifKart) {
+    aktifKart = s.onay_kartlari[0]; kalanSn = 300; onayKartGoster();
+  }
+  return s;
+}
+// Devre yakalayıcı: widget HTML'i içinde <script> YASAK olduğundan davranış
+// data-* nitelikleriyle burada bağlanır.
+document.addEventListener("click", async (ev) => {
+  const t = ev.target.closest("[data-node-istek]");
+  if (!t) return;
+  const kod = (t.closest("[data-widget-kod]") || {}).dataset?.widgetKod
+              || t.dataset.nodeKod || "";
+  if (!kod) return;
+  const eski = t.textContent;
+  t.textContent = "…";
+  try {
+    const s = await widgetCagir(kod, t.dataset.nodeIstek);
+    mesajEkle("bot", s.yanit || ("⚠️ " + (s.hata || "(boş)")), [{ adim: "widget: " + kod }]);
+  } finally { t.textContent = eski; }
+});
+
 /* ---------- açılış ---------- */
 (async () => {
   pencereVerisiCek();          // hava+kur: bir kez, bekletmeden
   await durumuCek();
   gecmisiYukle();
   onaylariYokla();
+  widgetlariYukle();
 })();
