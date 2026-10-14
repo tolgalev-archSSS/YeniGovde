@@ -7,9 +7,9 @@
     "adres": "http://127.0.0.1:11434"
   },
   "modeller": {
-    "rutin_model": "",
-    "agir_model": "",
-    "siniflandirma_modeli": "",
+    "rutin_model": "test-rutin",
+    "agir_model": "test-agir",
+    "siniflandirma_modeli": "test-rutin",
     "guc_orani": 0.55
   },
   "organlar": {},

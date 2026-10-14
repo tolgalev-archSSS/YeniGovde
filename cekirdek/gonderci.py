@@ -114,8 +114,8 @@ class GorevGonderici:
         # EL gibi yetenekler ONAY BEKLETEBİLİR → uzun süreli iş parçacığına
         # alınır; panel /api/onaylar ile kartı gösterir, karar gelince devam
         # edilir ve sonuç /api/sonuclar_bekleyen ile sohbete düşer.
-        izin_istenen = modul_adi == "el" and ("hedef" in str(girdi)) \
-            or zorla_modul == "el" and ("hedef" in str(girdi) or "/" in str(girdi))
+        izin_istenen = (modul_adi == "el" and ("hedef" in str(girdi)
+                        or "/" in str(girdi)))
         if izin_istenen:
             threading.Thread(target=self._arka_plan_isle,
                              args=(girdi, oid, karar, zorla_model),

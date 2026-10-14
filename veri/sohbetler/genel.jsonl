@@ -2,3 +2,21 @@
 {"zaman": "2026-10-13 08:55:47", "rol": "assistant", "icerik": "'flask tutorial' için sonuç bulunamadı.", "meta": {"komut": "arama"}}
 {"zaman": "2026-10-13 08:55:47", "rol": "user", "icerik": "python ile fibonacci kodu yaz ve hata debug et"}
 {"zaman": "2026-10-13 09:00:55", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:27:27", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:28:01", "rol": "user", "icerik": "/arama son dolar kuru"}
+{"zaman": "2026-10-14 18:28:01", "rol": "assistant", "icerik": "★ GÜNCEL VERİ — 1 USD = 49.38 TL\n   Güncel kur: 1 USD ≈ 49.3799 TL (kaynak: open.er-api.com).\n   Kaynak: open.er-api.com | Zaman: 2026-10-14T18:28", "meta": {"komut": "arama"}}
+{"zaman": "2026-10-14 18:29:21", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:29:30", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:29:37", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:30:06", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:30:06", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-rutin", "agirlik": 0.0}}
+{"zaman": "2026-10-14 18:30:11", "rol": "user", "icerik": "merhaba"}
+{"zaman": "2026-10-14 18:30:11", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-rutin", "agirlik": 0.0}}
+{"zaman": "2026-10-14 18:30:28", "rol": "user", "icerik": "bu hafta yapay zeka haberleri neler"}
+{"zaman": "2026-10-14 18:30:28", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-agir", "agirlik": 0.04}}
+{"zaman": "2026-10-14 18:31:03", "rol": "user", "icerik": "5000 tl bütçemle kulaklık önerir misin, kullanıcı yorumlarına göre puanla"}
+{"zaman": "2026-10-14 18:31:03", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-agir", "agirlik": 0.09}}
+{"zaman": "2026-10-14 18:31:49", "rol": "user", "icerik": "şu işlemleri yapan bir node bul: ekran görüntüsü alıp OCR yapan"}
+{"zaman": "2026-10-14 18:31:49", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-rutin", "agirlik": 0.08}}
+{"zaman": "2026-10-14 18:31:56", "rol": "user", "icerik": "node bul: ekran görüntüsü OCR"}
+{"zaman": "2026-10-14 18:31:56", "rol": "assistant", "icerik": "Merhaba! Sahte Ollama chat yaniti.", "meta": {"model": "test-rutin", "agirlik": 0.04}}

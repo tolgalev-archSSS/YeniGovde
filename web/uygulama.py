@@ -37,8 +37,46 @@ _gv_spec.loader.exec_module(_gv_mod)
 app = Flask(
     __name__,
     template_folder=os.path.join(_KOK, "web"),
-    static_folder=os.path.join(_KOK, "web", "statik"),
+    static_folder=os.path.join(_KOK, "web", "static"),   # DÜZELTME: klasör adı "static"
+    static_url_path="/static",
 )
+
+# ---------- KENDİ KENDİNİ İYİLEŞTİRME (self-healing) ----------
+# Statik dosya 404'ü = panel ölü demek (bir zamanlar klasör adı "statik" vs
+# "static" yüzünden tüm JS/CSS 404 alıp sistemi çalışmaz hale getirdi).
+# Böyle bir durumda doğru klasörü bulup anında bağla; kullanıcı asla boş ekran
+# görmesin. Ayrıca açılışta sessizce çöken import hatalarını logla.
+def _statik_kurtar():
+    if os.path.isdir(app.static_folder):
+        return
+    for aday in ("static", "statik", "assets"):
+        yol = os.path.join(_KOK, "web", aday)
+        if os.path.isdir(yol):
+            app.static_folder = yol
+            print(f"[UYARI] Statik klasör bulunamadı → otomatik yönlendirildi: {yol}")
+            return
+
+
+def _eksik_js_denetle():
+    """panel.html'in çağırdığı .js/.css dosyalarının diskte var olduğunu doğrula."""
+    import re as _re
+    html_yol = os.path.join(_KOK, "web", "panel.html")
+    try:
+        with open(html_yol, encoding="utf-8") as fh:
+            kaynak = fh.read()
+    except Exception:
+        return
+    eksik = []
+    for ref in _re.findall(r'(?:src|href)="(/static/[^"]+)"', kaynak):
+        if not os.path.isfile(os.path.join(_KOK, "web", ref[len("/static/"):])):
+            eksik.append(ref)
+    if eksik:
+        print("[UYARI] panel.html şu statik dosyaları istiyor ama diskte yok: "
+              + ", ".join(eksik))
+
+
+_statik_kurtar()
+_eksik_js_denetle()
 
 GOVDE: GorevGonderici | None = None
 
