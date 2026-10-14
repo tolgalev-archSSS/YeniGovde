@@ -220,6 +220,50 @@ class IzinKapicisi:
             olay.set()
         return {"basarili": True, "kart": kart}
 
+    # ---------- sohbette bekleyen kart (ekran-okuma akışı) ----------
+    def sohbete_beklet(self, soru: str) -> None:
+        """Sohbet satırında kullanıcıya sorulacak onay sorusunu biriktirir.
+
+        Kapıcı thread'i bloke etmesin diye panel/sorgu tarafı bunu yoklar;
+        kullanıcı 'evet/hayır' yazınca yanitla_sohbet ile cevaplanır."""
+        with self._kilit:
+            self._sohbet_sorusu = soru
+            self._sohbet_cevap = threading.Event()
+            self._sohbet_secim = None
+
+    def sohbet_sorusu_al(self):
+        with self._kilit:
+            return getattr(self, "_sohbet_sorusu", None)
+
+    def yanitla_sohbet(self, secim: str) -> dict:
+        """Kullanıcının sohbetten verdiği yanıt: evet|oturum|kalici|hayır."""
+        es = {"evet": "tek", "kabul": "tek", "tamam": "tek", "ev": "tek",
+              "oturum": "oturum", "kalici": "kalici",
+              "hayır": "ret", "hayir": "ret", "ret": "ret", "iptal": "ret"}
+        secim = es.get((secim or "").strip().lower())
+        if not secim:
+            return {"basarili": False, "neden": "Anlaşılamadı: evet/hayır yazın."}
+        with self._kilit:
+            self._sohbet_secim = secim
+            olay = getattr(self, "_sohbet_cevap", None)
+            self._sohbet_sorusu = None
+        if olay:
+            olay.set()
+        return {"basarili": True, "secim": secim}
+
+    def sohbet_onay_iste(self, aciklama: str, sure_sn: int = 120) -> bool:
+        """Panel YOKSA onayı sohbette sorar; kullanıcı yazınca devam eder.
+
+        Döner: True → izin verildi (tek), False → ret/zaman aşımı.
+        """
+        self.sohbete_beklet(aciklama)
+        olay = self._sohbet_cevap
+        tamam = olay.wait(timeout=sure_sn)
+        with self._kilit:
+            secim = getattr(self, "_sohbet_secim", None)
+            self._sohbet_sorusu = None
+        return tamam and secim == "tek"
+
     # ---------- zaman aşımı temizliği ----------
     def _temizlik_zamanla(self):
         def dongu():

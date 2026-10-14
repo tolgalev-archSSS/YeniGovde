@@ -47,6 +47,7 @@ input:checked+.slider:before{transform:translateX(16px)}
 .btn:hover{filter:brightness(1.15)}
 .btn.gris{background:var(--panel2);color:var(--metin);border:1px solid var(--cizgi)}
 .btn.kucuk{padding:4px 9px;font-size:12px}
+#btn-goz.agik{background:#b8860b;color:#fff;box-shadow:0 0 8px #b8860b88}
 .sok-btn{background:none;border:1px solid var(--cizgi);color:var(--kirmizi);border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer}
 .sok-btn:hover{background:#3a1d1d}
 /* ONAY KARTI */
@@ -130,6 +131,8 @@ hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
     </select>
     <button class="btn kucuk" onclick="dovusHesapla()">Çevir =</button>
     <span id="p-dovus-sonuc" style="color:var(--yesil)"></span>
+    <button class="btn kucuk" id="btn-goz" title="Ekran Gözü (ekran_gozu node'u takılıysa): ekrana bir kez bakar, nöbetçi başlatır/durdurur"
+            onclick="gozToggle()">👁 Göz</button>
     <span><i id="n-oklama" class="durum-nokta kotu"></i>Ollama</span>
     <span><i id="n-model" class="durum-nokta orta"></i>Modeller</span>
     <span id="saat"></span>

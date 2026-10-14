@@ -490,7 +490,15 @@ def api_modul_cagir():
         return jsonify({"arkaplan": True, "yanit":
                         f"'{kod}' arka planda çalışıyor; onay kartı çıkabilir, "
                         "sonuç sohbete düşecek."})
-    return jsonify(TEKIL.modulu_calistir(kod, girdi))
+    sonuc = TEKIL.modulu_calistir(kod, girdi)
+    # Göz node'u takılıysa: tarama sonucu + bekleyen onay kartları panelin
+    # "Gözetim" karesine de yazılır (onayı panelden görmek için).
+    try:
+        from cekirdek.onay import TEKIL_KAPICI
+        sonuc["onay_kartlari"] = TEKIL_KAPICI.bekleyenleri_getir()
+    except Exception:
+        pass
+    return jsonify(sonuc)
 
 
 # ---------------- onay / izin sistemi (kapıcı) ----------------

@@ -95,6 +95,39 @@ async function hizliCagir() {
   mesajEkle("bot", s.yanit || s.hata || "(boş)", [{ adim: "doğrudan çağrı: " + kod }]);
 }
 
+/* ---------- GÖZ: ekran gözlemi (ekran_gozu node'u) ---------- */
+let gozNobetci = false;
+
+async function gozToggle() {
+  const btn = $("btn-goz");
+  if (gozNobetci) {   // ikinci tık: nöbetçiyi kapat
+    const s = await post("/api/modul_cagir", { kod: "ekran_gozu", girdi: '{"eylem":"durdur"}' });
+    gozNobetci = false;
+    if (btn) { btn.textContent = "👁 Göz"; btn.classList.remove("agik"); }
+    mesajEkle("bot", "👁 " + (s.yanit || "(kapandı)"), []);
+    return;
+  }
+  // önce node takılı mı, araçlar ne âlemde — kontrol et
+  const d = await post("/api/modul_cagir", { kod: "ekran_gozu", girdi: "izleme_durumu" })
+              .catch(() => null);
+  if (!d || d.hata) {
+    alert("Göz henüz takılı değil.\nNode Yönetimi'nden 'ekran_gozu' node'unu kur ya da nodeller/kabul'dan onayla.");
+    return;
+  }
+  mesajEkle("bot", "👁 GÖZ DURUMU: " + (d.yanit || ""), []);
+  // tam ekrana bir kez bak (onay kartı çıkarsa aşağıdaki karttan yanıtla)
+  const s = await post("/api/modul_cagir", { kod: "ekran_gozu", girdi: '{"eylem":"ekran_tara"}' });
+  mesajEkle("bot", "👁 EKRAN GÖZÜM:\n" + (s.yanit || s.hata || "(boş)"), []);
+  // nöbetçi başlat: ucuz değişim-piksel döngüsü (30 sn)
+  const n = await post("/api/modul_cagir", { kod: "ekran_gozu", girdi: '{"eylem":"gozetle","sure_sn":30}' });
+  if (n.basarili) {
+    gozNobetci = true;
+    if (btn) { btn.textContent = "👁 Göz AÇIK (kapat)"; btn.classList.add("agik"); }
+    mesajEkle("bot", "👁 Nöbetçi: " + (n.yanit || "başladı") +
+             "\n(Değişim raporlarını görmek için butona tekrar basınca son 10 rapor gelir.)", []);
+  }
+}
+
 /* ---------- oturumlar ---------- */
 async function oturumlariYenile() {
   const liste = await api("/api/sohbetler");

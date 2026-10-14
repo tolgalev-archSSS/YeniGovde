@@ -46,7 +46,11 @@ class OllamaIstemcisi:
 
     def uretim(self, model: str, mesajlar: List[Dict[str, str]],
                sistem: str = "", sıcaklik: float = 0.4,
-               zaman_asimi: int = ZAMAN_ASIMI) -> str:
+               zaman_asimi: int = ZAMAN_ASIMI,
+               gorseller: List[str] | None = None) -> str:
+        """Mesaj üretimi. gorseller: base64 string listesi — Ollama çok-modal
+        (llava/qwen-vision vb.) modellerde son kullanıcı mesajına eklenir.
+        Metin-only model verirse Ollama görseli yok sayar; hata olmaz."""
         payload = {
             "model": model,
             "messages": mesajlar,
@@ -55,6 +59,8 @@ class OllamaIstemcisi:
         }
         if sistem:
             payload["system"] = sistem
+        if gorseller and mesajlar:
+            payload["messages"][-1]["images"] = list(gorseller)
         r = requests.post(self.adres + "/api/chat", json=payload, timeout=zaman_asimi)
         r.raise_for_status()
         return r.json().get("message", {}).get("content", "").strip()
