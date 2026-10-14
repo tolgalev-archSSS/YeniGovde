@@ -42,6 +42,9 @@ class GorevGonderici:
         # onay bekleyen arka plan işlerinin sonuçları (oturum -> [iz])
         self._sonuclar: Dict[str, list] = {}
         self._kilit = threading.RLock()
+        # Ollama tek model kilidi: aynı anda iki üretim gönderilmez (RAM/VRAM
+        # şişmesinin ve "read timed out" kilitlenmelerinin ana nedeni buydu).
+        self._uretim_kilit = threading.Lock()
 
     # ---------- başlatma ----------
     def baslat(self):
@@ -193,10 +196,29 @@ class GorevGonderici:
         elif not self.ollama.canli_mi():
             hata = "Ollama sunucusuna ulaşılamıyor. Başlatılmış olmalı."
         else:
-            try:
-                yanit = self.ollama.uretim(model, baglam["mesajlar"], sistem=sistem_metni)
-            except Exception as e:
-                hata = f"Üretim hatası: {e}"
+            # Ağır işaretleme (arama kurulu / görsel) varsa timeout uzatılır;
+            # ayrıca ayarlardan "uretim_zaman_asimi" ile elle de ayarlanabilir.
+            zaman_asimi = int(self.ayar.get("modeller", {})
+                              .get("uretim_zaman_asimi", 0)) or \
+                (900 if (modul_adi == "arastirmaci" or ek_bilgi.startswith("GÖRSEL"))
+                 else 300)
+            denemeler = [model]
+            rutin = self.ayar["modeller"].get("rutin_model") or ""
+            if rutin and rutin != model:
+                denemeler.append(rutin)   # ağır model kilitliyse sohbet ölmesin
+            for m in denemeler:
+                try:
+                    with self._uretim_kilit:   # sıraya al: tek istek, tek model
+                        yanit = self.ollama.uretim(m, baglam["mesajlar"],
+                                                   sistem=sistem_metni,
+                                                   zaman_asimi=zaman_asimi)
+                    if yanit:
+                        model = m
+                        break
+                except Exception as e:
+                    hata = f"Üretim hatası ({m}): {str(e)[:200]}"
+                    if m != model:
+                        hata += " — yedek model de denendi."
 
         if yanit:
             self.hafiza.kaydet(oid, "assistant", yanit,

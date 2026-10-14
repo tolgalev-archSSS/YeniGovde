@@ -7,7 +7,9 @@ from typing import Dict, List
 
 import requests
 
-ZAMAN_ASIMI = 120
+# NOT: Bu süre bekleme (idle) zaman aşımıdır, toplam süre değil. Büyük modellerde
+# model yükleme + uzun kanıt dosyası derlemesi 120 sn'yi rahatça aşar → 900 sn.
+ZAMAN_ASIMI = 900
 
 
 class OllamaIstemcisi:

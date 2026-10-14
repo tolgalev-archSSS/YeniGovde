@@ -119,7 +119,7 @@ class MotorYerel:
         try:
             cevap = self.ollama.uretim(model, [{"role": "user", "content": istem}],
                                        sistem=self.OZET_SISTEM, sıcaklik=0.2,
-                                       zaman_asimi=120)
+                                       zaman_asimi=300)
             if cevap:
                 self.ozet_yaz(oid, self._metinden_temizle(cevap))
                 return True
