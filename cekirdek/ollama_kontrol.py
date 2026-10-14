@@ -46,26 +46,79 @@ class OllamaIstemcisi:
         except Exception:
             return False
 
+    def _model_hazirla(self, model: str, bekleme_sn: int = 1800) -> None:
+        """27B gibi büyük GGUF modeller diskten RAM/VRAM'e yüklenirken Ollama
+        ilk istekte dakikalarca sessiz kalabilir; bu 'ısındırma' çağrısıdır.
+        Başarısız olursa sessizce geçilir (asıl üretim yine deneyecek)."""
+        try:
+            requests.post(self.adres + "/api/generate",
+                          json={"model": model, "prompt": "",
+                                "keep_alive": bekleme_sn, "stream": False},
+                          timeout=(10, max(300, bekleme_sn - 60)))
+        except Exception:
+            pass
+
     def uretim(self, model: str, mesajlar: List[Dict[str, str]],
                sistem: str = "", sıcaklik: float = 0.4,
                zaman_asimi: int = ZAMAN_ASIMI,
-               gorseller: List[str] | None = None) -> str:
+               gorseller: List[str] | None = None,
+               ısındır: bool = True) -> str:
         """Mesaj üretimi. gorseller: base64 string listesi — Ollama çok-modal
         (llava/qwen-vision vb.) modellerde son kullanıcı mesajına eklenir.
-        Metin-only model verirse Ollama görseli yok sayar; hata olmaz."""
+        Metin-only model verirse Ollama görseli yok sayar; hata olmaz.
+
+        stream=True: token akışıyla okuma boşlukları hiç oluşmaz → büyük
+        model yükleme/üretim sürelerinde 'read timed out' ölümlerini kökten
+        keser. Parçalar toplanıp tek metin olarak döner (sözleşme değişmedi).
+        kesinti: 30 sn içinde ilk token gelmezse bağlantı yenilenir (model
+        gerçekten çalışıyorsa token akar, kesinti olmaz)."""
+        if ısındır:
+            self._model_hazirla(model)
         payload = {
             "model": model,
             "messages": mesajlar,
-            "stream": False,
+            "stream": True,
+            "keep_alive": "30m",
             "options": {"temperature": sıcaklik},
         }
         if sistem:
             payload["system"] = sistem
         if gorseller and mesajlar:
             payload["messages"][-1]["images"] = list(gorseller)
-        r = requests.post(self.adres + "/api/chat", json=payload, timeout=zaman_asimi)
-        r.raise_for_status()
-        return r.json().get("message", {}).get("content", "").strip()
+        import socket
+        son_metin, deneme = "", 0
+        while True:
+            deneme += 1
+            parcalar: List[str] = []
+            try:
+                with requests.post(self.adres + "/api/chat", json=payload,
+                                   timeout=(30, zaman_asimi), stream=True) as r:
+                    r.raise_for_status()
+                    for satir in r.iter_lines():
+                        if not satir:
+                            continue
+                        import json as _j
+                        try:
+                            veri = _j.loads(satir.decode("utf-8"))
+                        except Exception:
+                            continue
+                        if veri.get("error"):
+                            raise RuntimeError(veri["error"])
+                        parca = (veri.get("message") or {}).get("content", "")
+                        if parca:
+                            parcalar.append(parca)
+                return "".join(parcalar).strip()
+            except (requests.exceptions.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError,
+                    socket.timeout) as e:
+                # token akmaya başladıysa kısmi metni koru; akış hiç başlamadıysa
+                # taze istekle yeniden dene (Ollama'nın sessiz bağlantı kesmesi)
+                if parcalar or deneme >= 2:
+                    return "".join(parcalar).strip()
+                continue
+            except requests.exceptions.ReadTimeout:
+                # okuma boşluğu tek seferlik olduysa: toplananı döndür ya da bir kez daha
+                return "".join(parcalar).strip()
 
     def sayisal_test(self, model: str) -> Dict[str, object]:
         """Model gerçekten yanıt verebiliyor mu? Kısa deneme üretimi."""

@@ -216,7 +216,9 @@ class GorevGonderici:
                         model = m
                         break
                 except Exception as e:
-                    hata = f"Üretim hatası ({m}): {str(e)[:200]}"
+                    hata = (f"Üretim hatası ({m}): {str(e)[:200]} — süre "
+                            f"limiti {zaman_asimi} sn idi; Ayarlar → "
+                            "'uretim_zaman_asimi' ile yükseltebilirsin.")
                     if m != model:
                         hata += " — yedek model de denendi."
 
