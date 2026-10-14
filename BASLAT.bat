@@ -16,42 +16,74 @@ echo    MODULER YEREL ZEKA SISTEMI - OTOMATIK BASLATMA
 echo ============================================================
 echo.
 
-rem --- 1) Python bul: once venv, sonra py calistiricisi, sonra python ---
-set "PY_CMD="
-if exist ".venv\Scripts\python.exe" set "PY_CMD=.venv\Scripts\python.exe"
-if not defined PY_CMD py -3 --version >nul 2>&1 && set "PY_CMD=py -3"
-if not defined PY_CMD python --version >nul 2>&1 && set "PY_CMD=python"
-if not defined PY_CMD (
+rem --- 1) Python bul: once venv, sonra py, sonra python ---
+rem     Duz komut adlari tutulur ("!PY_ARGS!" ayrilmis), tirnak sorunu yok.
+set "VPY=.venv\Scripts\python.exe"
+set "PY_EXE="
+set "PY_ARGS="
+if exist "%VPY%" set "PY_EXE=%VPY%"
+if not defined PY_EXE (
+    py -3 --version >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_EXE=py"
+        set "PY_ARGS=-3"
+    )
+)
+if not defined PY_EXE (
+    python --version >nul 2>&1
+    if not errorlevel 1 set "PY_EXE=python"
+)
+if not defined PY_EXE (
     echo !! Python bulunamadi. https://python.org adresinden kurun
     echo    ^(kurulumda "Add Python to PATH" kutusunu isaretleyin^).
     pause
     exit /b 1
 )
-echo [OK] Python komutu: !PY_CMD!
+echo [OK] Python: !PY_EXE! !PY_ARGS!
 echo.
 
-rem --- 2) Sanal ortam yoksa olustur ---
-if not exist ".venv\Scripts\python.exe" (
+rem --- 2) Sanal ortam yoksa olustur (venv'de pip genelde hazirdir;
+rem     Windows'ta bazen eksik olur -> ensurepip ile tamamla) ---
+if not exist "%VPY%" (
     echo [..] Ilk kurulum: sanal ortam olusturuluyor... ^(biraz surabilir^)
-    "!PY_CMD!" -m venv .venv
-    if not exist ".venv\Scripts\python.exe" (
-        echo !! Sanal ortam olusturulamadi.
+    set "OLUSTUR=!PY_EXE! !PY_ARGS!"
+    !OLUSTUR! -m venv .venv
+    if not exist "%VPY%" (
+        echo !! Sanal ortam olusturulamadi. Python kurulumunu kontrol edin.
         pause & exit /b 1
+    )
+    "%VPY%" -m pip --version >nul 2>&1
+    if errorlevel 1 (
+        echo [..] venv icinde pip eksik, ensurepip ile tamamlaniyor...
+        "%VPY%" -m ensurepip --upgrade >nul 2>&1
+        "%VPY%" -m pip --version >nul 2>&1
+        if errorlevel 1 (
+            echo !! pip kurulamadi. Yedek yol: sistem Python'i ile devam ediliyor.
+            set "PIP_TAM=!PY_EXE! !PY_ARGS!"
+        )
     )
 )
 
 rem --- 3) Bagimliliklari kur/guncelle (activate yerine dogrudan venv python) ---
-set "VPY=.venv\Scripts\python.exe"
+if not defined PIP_TAM (
+    set "PIP_TAM=%VPY%"
+)
 echo [..] Bagimliliklar kontrol ediliyor...
-"!VPY!" -m pip install --quiet --disable-pip-version-check -r gereksinimler.txt
+!PIP_TAM! -m pip install --quiet --disable-pip-version-check -r gereksinimler.txt
 if errorlevel 1 (
     echo !! Paket kurulumu basarisiz. Internet/kurulum gunlugunu kontrol edin.
     pause & exit /b 1
 )
 
 rem --- 4) Asil baslaticiyi calistir (tum kontrollerin ici Python'da) ---
+rem     venv kullanilabilirse onun python'i, degilse sistem python'i ile calisir.
+if exist "%VPY%" (
+    set "RUN_PY=%VPY%"
+) else (
+    set "RUN_PY=!PY_EXE! !PY_ARGS!"
+)
 echo.
-"!VPY!" baslat.py
+!RUN_PY! baslat.py
 set "RC=!errorlevel!"
 if not "!RC!"=="0" (
     echo.
