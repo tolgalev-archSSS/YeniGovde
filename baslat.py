@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import webbrowser
 
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -124,8 +125,16 @@ def sunucuyu_ac(ip_port=None):
     ip, port = a["ip"], int(a["port"])
     url = f"http://{ip}:{port}"
     if not os.environ.get("MLAO_PENCERE_YOK"):
-        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        def _tarayici_ac():
+            try:
+                if not webbrowser.open(url):
+                    raise RuntimeError("varsayılan tarayıcı bulunamadı")
+            except Exception as e:
+                print(f"     !! Otomatik tarayıcı açılamadı ({e}).", flush=True)
+                print(f"     !! Elle açın: {url}", flush=True)
+        threading.Timer(1.5, _tarayici_ac).start()
     print(f"\n     PANEL HAZIR  →  {url}")
+    print(f"     Tarayıcınız açılmadıysa elle gidin: {url}")
     print("     Kapatmak için bu pencereyi CTRL+C ile durdurun.\n")
     app.run(host=ip, port=port, debug=False, threaded=True)
 
@@ -143,8 +152,24 @@ def main():
         sunucuyu_ac()
     except KeyboardInterrupt:
         print("\nSistem kapatılıyor...")
+    except OSError as e:
+        # port çakışması en sık görünen hata → net Türkçe yönlendirme
+        if "address already in use" in str(e).lower() or getattr(e, "errno", 0) in (98, 10048):
+            from cekirdek import yapilandirma
+            a = yapilandirma.yukle()["sunucu"]
+            print("\n!! PORT KULLANIMDA:", e)
+            print(f"   Zaten çalışan bir sistem var mı? http://{a['ip']}:{a['port']}")
+            print("   adresini açın; yoksa Görev Yöneticisi'nden eski python.exe")
+            print("   sürecini kapatın veya ayarlar/ayarlar.json içindeki")
+            print("   sunucu.port değerini değiştirip tekrar deneyin.")
+        else:
+            print("\n!! Sunucu açılamadı:", e)
+            traceback.print_exc()
+        if os.name == "nt":
+            input("Enter...")
     except Exception as e:
         print("\n!! Sunucu açılamadı:", e)
+        traceback.print_exc()
         print("   Port kullanımda olabilir; ayarlar/ayarlar.json içindeki")
         print("   sunucu.port değerini değiştirip tekrar deneyin.")
         if os.name == "nt":
