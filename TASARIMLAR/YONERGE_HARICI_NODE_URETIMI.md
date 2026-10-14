@@ -212,6 +212,29 @@ beklenmedik hata, onay kartı davranışı, hafıza etkileşimi (1-5).
 
 ---
 
+## 4.5 DIŞARIDAKİ SOHBETİN SORABİLECEĞİ TASARIM SORULARI — CEVAP ANAHTARI
+
+Dışarıdaki sohbet penceresi kod yazmadan önce bu soruları sorarsa, cevaplar
+kesin ve değişmezdir (sistemde kodla doğrulanmıştır). Cevapları olduğu gibi
+ver, tartışmaya açma:
+
+| # | Soru | **CEVAP** | Gerekçe (kodda nerede) |
+|---|---|---|---|
+| 1 | Arayüz tamamen Türkçe mi? | **EVET, kesin.** Tüm sözlük anahtarları, fonksiyon adları, kullanıcıya dönən metinler Türkçe. Değişken/JSON alan adı bile (`basarili`, `yanit`, `ozet`, `hata`). İngilizce yalnızca kütüphane API çağrılarında (`requests.get` vb.). | Tüm çekirdek + örnek nodeller Türkçe; panel `lang="tr"` |
+| 2 | Node Yönetimi tek sayfada tab/sekme mi? | **HAYIR, sekme yok.** Panel modal (açılır kart) tabanlıdır: Ayarlar → Node Yönetimi tek bir modal içinde üç bölüm olarak alt alta listelenir: ① yüklü node'lar (switch'li), ② kabuldekiler (Onayla/Geri Kur butonlu), ③ arşiv/sökülenler. Sayfa yenileme/URL state yok. | `web/uygulama.py`: `/api/node_listesi`, `/api/node_onayla`; `panel.html`: `.modal-arka` yapısı |
+| 3 | Sohbet ChatGPT benzeri mi, terminal mi? | **ChatGPT benzeri mesaj akışı** (baloncuklar, sağ=sol ayrımı, etiket chip'leri). EK OLARAK komut satırı kısayolu var: mesaj `/kod girdi...` ile başlarsa karar merkezi atlanır, node doğrudan çağrılır. Yani hibrit ama görsel olarak sohbet öncelikli. | `panel.js`: `mesajEkle()`, baloncuk CSS; `/api/sohbet` içindeki `ilk.startswith("/")` dalı |
+| 4 | Onay kartları sabit panel mi, modal/popup mu? | **Modal/popup** (ekranın üst-ortasında yüzen sarı kart, z-index 200). Birden çok bekleyen kart varsa sırayla TEK gösterilir. Kartta 4 seçenek: ✔ yalniz bu sefer / 🔓 oturum boyu / ♾ kalıcı / ✖ ret. ~2 sn'de bir `/api/onaylar` yoklanır; süre dolunca (varsayılan 300 sn) kart kendiliğinden kapanır ve işlem reddedilmiş sayılır. | `panel.html`: `.onay-kart`; `cekirdek/onay.py`: `BEKLEME_SURESI_SN` |
+| 5 | Canlı veri: statik mock mu, gerçek API simülasyonu mu? | **GERÇEK API, simülasyon/mock YASAK.** Node'lar canlı uçar: hava/döviz → open-meteo/exchangerate, arama → DuckDuckGo, akademik → OpenAlex/arXiv, model → yerel Ollama. Ağ erişimi olmayan test ortamında doğru davranış şudur: hatayı sahte veriyle örtmek DEĞİL, `{\"basarili\": False, \"hata\": \"...\"}` dönmek ve yanıtta \"bu veriye ulaşamadım\" demek. Mock veri yalnızca açıkça `test_modu=True` saglama bayrağıyla, yanıtın `notlar` alanında etiketlenmiş olarak üretilebilir. | `birimler/guncel_veri_birimi.py` (API'ler), DERLEME_SISTEM kural 7 (sayısal veride tahmin yasağı) |
+
+**Özet cevap cümlesi (dışarıdaki sohbete aynen verilebilir):**
+\"Arayüz tamamen Türkçe; Node Yönetimi tek modal içinde üç bölümlük liste
+(sekme yok); sohbet ChatGPT tarzı baloncuk + `/komut` kısayollu hibrit; onay
+kartları üst-orta modal popup ve oturum/kalıcı izin destekli, 300 sn timeout;
+canlı veri gerçek API'den gelir, mock/simülasyon ancak test_modu bayrağıyla ve
+etiketli olabilir, hata durumunda sahte veri yerine açık hata döner.\"
+
+---
+
 ## 5. TEST SENARYOSU HAVUZU (hazır sipariş cümleleri)
 
 | # | Sipariş | Zorladığı şey | Beklenen katman |
@@ -239,7 +262,9 @@ T5'i de mutlaka dene — sistemin savunma hattı ancak böyle ölçülür.
 
 ---
 
-*Belge sürümü: 1.0 — 2026-10-14. Kod referansları: `web/uygulama.py`
-(api_node_onayla, _kabul_eslesmeleri, api_modul_sok/geri_kur),
-`cekirdek/modul_iskeleti.py` (TUR_NODE, arşiv alt-klasör filtresi),
+*Belge sürümü: 1.1 — 2026-10-14. Değişiklik: §4.5 eklendi (dışarıdaki
+sohbetin 5 tasarım sorusunun kodla doğrulanmış cevap anahtarı).
+Kod referansları: `web/uygulama.py` (api_node_onayla, _kabul_eslesmeleri,
+api_modul_sok/geri_kur), `cekirdek/modul_iskeleti.py` (TUR_NODE, arşiv
+alt-klasör filtresi), `cekirdek/onay.py` (BEKLEME_SURESI_SN=300),
 `nodeller/meu/modul.py` (minimal örnek paket).*
