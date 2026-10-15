@@ -1,0 +1,60 @@
+KATEGORI: kultur_motif | BİRİMLER: kulturel_dil_birimi, web_birimi, akademik_birimi | DETAYLI: True
+1. [arxiv] Isovector Collective Response Function of Nuclear Matter at Finite Temperature (güven:0.6, tarih:2003-09-11, dil:en)
+   http://arxiv.org/abs/nucl-th/0309028v1
+   Kutsal Bozkurt … | We study isovector collective excitations in nuclear matter by employing the linearized Landau-Vlasov equation with and without a non-Markovian binary collision term at finite temperature. We calculate the giant dipole resonance (GDR) streng
+   NOT: önbaskı
+2. [arxiv] A New Algorithm for Equivalence of Cyclic Codes and Its Applications (güven:0.6, tarih:2021-07-01, dil:en)
+   http://arxiv.org/abs/2107.00159v1
+   Nuh Aydin … | Cyclic codes are among the most important families of codes in coding theory for both theoretical and practical reasons. Despite their prominence and intensive research on cyclic codes for over a half century, there are still open problems relate
+   NOT: önbaskı
+3. [arxiv] Resolution of an Open Problem on Quasi-Cyclic Codes over $\mathbb{Z}_4$ and New Quaternary Linear Codes (güven:0.6, tarih:2026-09-18, dil:en)
+   http://arxiv.org/abs/2609.21601v1
+   Nuh Aydin … | Given a cyclic code $C_g = \langle g(x) \rangle$ of odd length $m$ over $\mathbb{Z}_4$, one common way to build a quasi-cyclic (QC) code is to pick $f_1, \dots, f_\ell \in \mathbb{Z}_4[x]$ and let $C = \langle (f_1 g, \dots, f_\ell g) \rangle$. B
+   NOT: önbaskı
+4. [arxiv] Good Classical and Quantum Codes from Multi-Twisted Codes (güven:0.6, tarih:2020-08-17, dil:en)
+   http://arxiv.org/abs/2008.07037v1
+   Nuh Aydin … | Multi-twisted (MT) codes were introduced as a generalization of quasi-twisted (QT) codes. QT codes have been known to contain many good codes. In this work, we show that codes with good parameters and desirable properties can be obtained from MT 
+   NOT: önbaskı
+5. [web] Nuh'un Gemisi - Vikipedi (güven:0.5, dil:tr)
+   https://tr.wikipedia.org/wiki/Nuh'un_gemisi
+   Nuh'un Gemisi, pek çok kültürün kutsal metinlerinde ya da mitolojisinde yer alan, özellikle Tevrat 'ın Tekvin (yaratılış) bölümünde ayrıntıları ile anlatılan tufan öyküsüne göre, yalnızca Nuh peygamber ve ona inananların tufandan kurtulabilmek için bindikleri 
+6. [web] Nuh - Vikipedi (güven:0.5, dil:tr)
+   https://tr.wikipedia.org/wiki/Nuh
+   Tevrat'taki Nuh tufanı hikâyesi, MÖ 1800'lerde yazıldığı tahmin edilen Sümer destanı Gılgamış 'ta geçen bir tufan hikâyesine oldukça benzer. Gılgamış destanında Mezopotamya tanrıları insanlığı yok etmek için büyük bir tufan göndermeye karar verirler. Nuh ve Gı
+7. [web] Nuh Tufanı: Gerçek mi Efsane mi? - JW.ORG (güven:0.5, dil:tr)
+   https://www.jw.org/tr/kutsal-kitabin-ogrettikleri/sorular/nuh-tufan-gemi-hikaye/
+   Nuh Tufanı gerçek bir olaydı. Tanrı kötü insanları yok etmek için Tufan getirecekti, ama iyi insanların kurtulması için Nuh'a bir gemi yapmasını söyledi.
+8. [web] "Nuh Tufanında Birden Fazla Gemi Olabilir.." Kutsal Kitaplar Ve Sümer ... (güven:0.5, dil:tr)
+   https://www.youtube.com/watch?v=_Qv99wrwTEM
+   Kutsal Kitaplar Ve Sümer Tabletlerinde Nuh Tufanı Nasıl Anlatılıyor..? Konfüçyüs Ve Buda Peygamber Olabilir Mi..? Dinler Tarihçisi ve Siyaset Felsefecisi Dr. Lütfü Özşahin ve Dinler...
+9. [web] Nuh Tufanı, Kızıl Deniz'in yarılması gibi olayların Sümer, Babil ve ... (güven:0.5, dil:tr)
+   https://sorularlaislamiyet.com/nuh-tufani-kizil-denizin-yarilmasi-gibi-olaylarin-sumer-babil-ve-misir-kaynaklarinda-gectigi-ve
+   - Tevratın, Eski Sümer, Mısır, Babil kaynaklarında geçen Nuh tufanı, Hz. Musa'nın Sepet içinde firavunun sarayına alınması, Kızıl denizin yarılması gibi olayları kopya ettiği iddia edilmektedir.
+10. [web] Nûh Tufanına Kitab-ı Mukaddes ve Kur’an-ı Kerim ... (güven:0.5, dil:en)
+   https://dergipark.org.tr/tr/pub/sarkiat/issue/85960/1451372
+   Jun 30, 2024 · Tufan bir ayet, ilahi yasanın tecellisi, mucize ve insanları doğru yola iletmeyi hedefle-yen bir ders olarak değerlendirmektedir. Çalışmada, Tevrat ve İncil metinleri için Kitabı Mukaddes Şirketi’nin bastığı Kutsal Kitap Eski ve Yeni Antlaşma (T
+   NOT: perspektif:dinler_ve_motifler
+11. [web] KUTSAL KİTAPLARA GÖRE HZ. NUH’UN GEMİSİ NEREDE YAPILDI ... (güven:0.5, dil:en)
+   https://dergipark.org.tr/tr/doi/10.31463/aicusbed.742785
+   Hz. Nuh da küçük bir grup dışında tasdik etmediklerini görünce onlara yönelik beddua etmiştir. Bunun üzerine Nuh’un Tufanı diye bilinen olay yaşanmıştır. Bu olaydan önce Allah’ın emri ile bir gemi inşa ederek iman getirenlerin kurtuluşuna vesile olmuştur. İşte
+   NOT: perspektif:dinler_ve_motifler
+12. [web] Diyanet Dijital (güven:0.5, dil:en)
+   https://dijital.diyanet.gov.tr/
+   Diyanet İşleri Başkanlığı yayınlarını tek adreste okuyun, dinleyin ve izleyin: e-kitaplar, e-dergiler, sesli kitaplar ve videolar Diyanet Dijital'de.
+   NOT: perspektif:dinler_ve_motifler
+13. [web] Hûd Suresi 44. Ayet Tefsiri - Diyanet İşleri Başkanlığı (güven:0.5, dil:en)
+   https://kuran.diyanet.gov.tr/tefsir/Hûd-suresi/1517/44-ayet-tefsiri
+   Nûh receb ayının ilk gününde gemiye binmiş, altı ay sonra Muharrem ayının 10'unda âşûrâ günü gemi Cûdî denilen dağda karaya oturmuştur (XII, 47; âşûrâ hakkında bilgi için bk. Yusuf Şevki Yavuz, "Aşûra", DİA, IV, 24). Ancak bu konuda da en güvenilir yol Kur'an'
+   NOT: perspektif:dinler_ve_motifler
+14. [web] Yaratılış Kitabı Tufan hikayesi - Vikipedi (güven:0.5, dil:en)
+   https://tr.wikipedia.org/wiki/Yaratılış_Kitabı_Tufan_hikayesi
+   Nuh'un Tufanı, Kutsal Kitap 'a göre dünya çapında Tanrı tarafından insanları cezalandırmak amacıyla yaratılan bir felaketti. Tekvin tufanı anlatısı, İbrani Kutsal Kitabı ve Hristiyan Eski Ahdi 'ndeki Yaratılış Kitabı 'nın 6-9. bölümlerinde bulunan tufan efsane
+   NOT: perspektif:dinler_ve_motifler
+15. [web] Gılgamış'tan Nuh'a: Tufan Mitinin Kökeni ve Karşılaştırmalı Analizi (güven:0.5, dil:en)
+   https://pantheonica.com/tr/gilgamis-nuh-tufan-miti-kokeni/
+   İnsanlık tarihinin en köklü ve evrensel anlatılarından biri olan Tufan Miti, tanrısal bir gazap neticesinde dünyanın sular altında kalmasını ve seçilmiş bir azınlığın gemi vasıtasıyla kurtularak yaşamı yeniden başlatmasını konu edinir.
+   NOT: perspektif:dinler_ve_motifler
+16. [web] KUTSAL KİTAPLARA GÖRE HZ. NUH’UN GEMİSİ NEREDE YAPILDI ... (güven:0.5, dil:en)
+   https://dergipark.org.tr/tr/pub/aicusbed/issue/57605/742785
+   Oct 25, 2020 · Hz. Nuh da küçük bir grup dışında tasdik etmediklerini görünce onlara yönelik beddua etmiştir. Bunun üzerine Nuh’un Tufanı diye bilinen olay yaşanmıştır. Bu olaydan önce Allah’ın emri ile bir gemi inşa ederek iman getirenlerin kurtuluşuna vesile
+   NOT: perspektif:dinler_ve_motifler

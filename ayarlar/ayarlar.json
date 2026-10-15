@@ -1,0 +1,36 @@
+{
+  "sunucu": {
+    "ip": "127.0.0.1",
+    "port": 8765
+  },
+  "ollama": {
+    "adres": "http://127.0.0.1:11434"
+  },
+  "modeller": {
+    "rutin_model": "test-rutin",
+    "agir_model": "test-agir",
+    "siniflandirma_modeli": "test-rutin",
+    "guc_orani": 0.55
+  },
+  "organlar": {},
+  "yetenekler": {},
+  "arama": {
+    "onay_serbest": true,
+    "ingilizce_ara": true,
+    "guncel_veri_birimi_acik": true,
+    "site_onceligi": [
+      "hepsiburada.com",
+      "trendyol.com",
+      "akakce.com",
+      "cimri.com"
+    ],
+    "varsayilan_adet": 6
+  },
+  "hafiza": {
+    "etkin": true,
+    "motor": "yerel",
+    "pencere_mesaj": 12,
+    "oturum_basina_ozet": 8,
+    "mem0_dosya": "veri/hafiza/mem0_hafiza.json"
+  }
+}

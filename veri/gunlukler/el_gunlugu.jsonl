@@ -1,0 +1,8 @@
+{"eylem": "goz_ekran", "hedef": "tam ekran", "kimlik": "47289371", "sonuc": "ZAMAN_ASIMI", "zaman": "2026-10-14 11:43:49"}
+{"eylem": "goz_ekran", "hedef": "tam ekran", "kimlik": "529a572d", "sonuc": "oturum", "zaman": "2026-10-14 11:44:21"}
+{"eylem": "goz_pencere", "hedef": "chrome", "kimlik": "35ebc1ea", "sonuc": "ZAMAN_ASIMI", "zaman": "2026-10-14 11:45:20"}
+{"eylem": "goz_bolum", "hedef": "0,0,300,150", "kimlik": "3102667f", "sonuc": "ZAMAN_ASIMI", "zaman": "2026-10-14 11:46:20"}
+{"eylem": "goz_ekran", "hedef": "tam ekran", "kimlik": "047f4e14", "sonuc": "oturum", "zaman": "2026-10-14 11:46:41"}
+{"eylem": "goz_pencere", "hedef": "chrome", "kimlik": "034192a8", "sonuc": "oturum", "zaman": "2026-10-14 11:46:41"}
+{"eylem": "goz_bolum", "hedef": "0,0,300,150", "kimlik": "b4a0685d", "sonuc": "oturum", "zaman": "2026-10-14 11:46:41"}
+{"eylem": "node_kabul", "hedef": "demo_widget", "kimlik": "b6b367f7", "sonuc": "oturum", "zaman": "2026-10-14 13:06:06"}

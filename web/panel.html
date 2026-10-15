@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modüler Yerel Zekâ — Üretim Paneli</title>
+<style>
+:root{
+  --zemin:#0d1117; --panel:#161b22; --panel2:#1c2330; --cizgi:#2d3542;
+  --metin:#dbe4ee; --soluk:#8b98a9; --vurgu:#4da3ff; --yesil:#3fb950;
+  --kirmizi:#f85149; --sari:#d29922; --mor:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--zemin);color:var(--metin);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+/* ÜST BAR */
+header{display:flex;align-items:center;gap:14px;background:var(--panel);border-bottom:1px solid var(--cizgi);padding:0 16px;height:52px;flex-shrink:0}
+header .logo{font-weight:700;color:var(--vurgu);letter-spacing:.5px}
+.menu{position:relative}
+.menu>button{background:none;border:1px solid transparent;color:var(--metin);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
+.menu>button:hover{background:var(--panel2)}
+.menu .alt{display:none;position:absolute;top:100%;left:0;background:var(--panel2);border:1px solid var(--cizgi);border-radius:8px;min-width:230px;z-index:50;padding:6px;box-shadow:0 8px 24px #0008}
+.menu:hover .alt{display:block}
+.alt button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--metin);padding:9px 12px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.alt button:hover{background:#2a3446}
+#durum-top{margin-left:auto;display:flex;gap:14px;font-size:12.5px;color:var(--soluk);align-items:center}
+.durum-nokta{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+.ok{background:var(--yesil)} .kotu{background:var(--kirmizi)} .orta{background:var(--sari)}
+/* GÖVDE */
+main{display:flex;flex:1;min-height:0}
+aside{width:330px;background:var(--panel);border-right:1px solid var(--cizgi);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.bolum{border-bottom:1px solid var(--cizgi);padding:12px 14px}
+.bolum h3{font-size:12px;text-transform:uppercase;color:var(--soluk);letter-spacing:1px;margin-bottom:10px}
+.modul-satir{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;font-size:13px}
+.modul-satir:hover{background:var(--panel2)}
+.modul-satir .ad{flex:1;cursor:default}
+.modul-satir .tur{font-size:10px;padding:2px 7px;border-radius:10px}
+.tur-organ{background:#1f3a2d;color:var(--yesil)} .tur-yetenek{background:#2a2440;color:var(--mor)}
+.switch{position:relative;width:34px;height:18px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#39424f;border-radius:10px;cursor:pointer;transition:.2s}
+.slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--yesil)}
+input:checked+.slider:before{transform:translateX(16px)}
+.oturum{padding:7px 9px;border-radius:6px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;color:var(--soluk)}
+.oturum:hover,.oturum.secili{background:var(--panel2);color:var(--metin)}
+.btn{background:var(--vurgu);color:#04121f;border:0;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.btn:hover{filter:brightness(1.15)}
+.btn.gris{background:var(--panel2);color:var(--metin);border:1px solid var(--cizgi)}
+.btn.kucuk{padding:4px 9px;font-size:12px}
+#btn-goz.agik{background:#b8860b;color:#fff;box-shadow:0 0 8px #b8860b88}
+.sok-btn{background:none;border:1px solid var(--cizgi);color:var(--kirmizi);border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer}
+.sok-btn:hover{background:#3a1d1d}
+/* ONAY KARTI */
+.onay-kart{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;width:min(560px,94vw);
+  background:#1e1508;border:1px solid var(--sari);border-radius:12px;padding:16px 18px;box-shadow:0 12px 40px #000c;display:none}
+.onay-kart.acik{display:block}
+.onay-kart h4{color:var(--sari);font-size:14px;margin-bottom:8px}
+.onay-kart .hedef{font-family:Consolas,monospace;font-size:12.5px;background:#12161d;border:1px solid var(--cizgi);
+  border-radius:6px;padding:8px 10px;margin:8px 0;color:#ffd9a0;word-break:break-all}
+.onay-kart .butonlar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.onay-kart .btn.onay{background:var(--yesil)}
+.onay-kart .btn.reddet{background:var(--kirmizi);color:#fff}
+/* SOHBET */
+#sohbet-alan{flex:1;display:flex;flex-direction:column;min-width:0}
+#mesajlar{flex:1;overflow-y:auto;padding:22px 8%}
+.mesaj{max-width:820px;margin:0 auto 16px;padding:13px 16px;border-radius:10px;line-height:1.55;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word}
+.mesaj.user{background:#223046;margin-left:auto;border-bottom-right-radius:3px}
+.mesaj.bot{background:var(--panel);border:1px solid var(--cizgi);border-bottom-left-radius:3px}
+.mesaj .etiket{font-size:11px;color:var(--soluk);margin-bottom:6px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{background:var(--panel2);border:1px solid var(--cizgi);padding:1px 8px;border-radius:10px;font-size:10.5px}
+.chip.agir{color:var(--kirmizi)} .chip.rutin{color:var(--yesil)} .chip.modul{color:var(--mor)}
+.mesaj.hata{border-color:var(--kirmizi);color:#ffb4ae}
+.giris-kutu{border-top:1px solid var(--cizgi);background:var(--panel);padding:12px 8%}
+.giris-ic{max-width:820px;margin:0 auto;display:flex;gap:10px}
+textarea{flex:1;background:var(--panel2);border:1px solid var(--cizgi);color:var(--metin);border-radius:8px;padding:11px;font-size:14px;resize:none;font-family:inherit;height:48px}
+textarea:focus{outline:none;border-color:var(--vurgu)}
+.yaziyor{font-size:12.5px;color:var(--soluk);padding:4px 8%;max-width:820px;margin:0 auto}
+/* MODAL */
+.modal-arka{display:none;position:fixed;inset:0;background:#000a;z-index:100;align-items:center;justify-content:center}
+.modal-arka.acik{display:flex}
+.modal{background:var(--panel);border:1px solid var(--cizgi);border-radius:12px;width:min(760px,92vw);max-height:86vh;overflow-y:auto;padding:22px}
+.modal h2{font-size:17px;margin-bottom:16px;color:var(--vurgu)}
+.satir{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.satir label{font-size:13px;color:var(--soluk);min-width:170px}
+select,input[type=text],input[type=number]{background:var(--panel2);border:1px solid var(--cizgi);color:var(--metin);padding:8px 10px;border-radius:6px;font-size:13.5px;min-width:220px}
+.model-kart{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--cizgi);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13px}
+.kapali{display:none}
+.not{font-size:12px;color:var(--soluk);margin:6px 0}
+hr.cizgi{border:0;border-top:1px solid var(--cizgi);margin:16px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">⬢ MODÜLER YEREL ZEKÂ</span>
+  <div class="menu"><button>Ayarlar ▾</button>
+    <div class="alt">
+      <button onclick="modalAc('modal-ayar')">Model ve Sistem Ayarları</button>
+      <button onclick="nodeYonetimiGoster()">Node Yönetimi (Kur / Sök / Geri Kur)</button>
+      <button onclick="modalAc('modal-hafiza')">Hafıza Ayarları</button>
+      <button onclick="aramaAyarGoster()">Arama Ayarları (İngilizce + Onay)</button>
+    </div>
+  </div>
+  <div class="menu"><button>Modüller ▾</button>
+    <div class="alt">
+      <button onclick="modulleriYenile()">Kurulu Modülleri Tara</button>
+      <button onclick="sokulenleriGoster()">Sökülen Arşivi Aç / Geri Kur</button>
+      <button onclick="elIzinleriGoster()">El İzin Defteri (kalıcı/oturum)</button>
+      <button id="btn-modul-yol" onclick="modulKlasorYoluGoster()">Modül Klasör Yolları</button>
+    </div>
+  </div>
+  <div class="menu"><button>Sistem ▾</button>
+    <div class="alt">
+      <button onclick="durumuCek()">Sağlık Kontrolü Tekrarla</button>
+      <button onclick="hafizaOzetGoster()">Hafıza Özetlerini Gör</button>
+      <button onclick="bilgiGoster(location.origin+' adresinde yerel sunucu. Veriler veri/ klasöründe.')">Sistem Bilgisi</button>
+    </div>
+  </div>
+  <div id="durum-top">
+    <!-- ÜST PANEL: hava + kur — SADECE ilk açılışta çekilir (pencereVerisiCek) -->
+    <span id="p-hava" title="İstanbul hava (açılışta güncellenir)">🌦 …</span>
+    <span id="p-kur" title="USD/TRY anlık kur">💵 …</span>
+    <input type="number" id="p-dovus" placeholder="miktar" min="0" step="any"
+           style="width:74px;min-width:0;padding:4px 6px;font-size:12.5px"
+           onkeydown="if(event.key==='Enter')dovusHesapla()"
+           title="Bir sayı yaz (ör. 5) → çevir butonu anlık kurla hesaplar">
+    <select id="p-doviz-turu" style="min-width:0;width:auto;padding:4px;font-size:12px"
+            title="Hangi para biriminden TL'ye?">
+      <option value="USD">USD→TL</option><option value="EUR">EUR→TL</option>
+      <option value="GBP">GBP→TL</option>
+    </select>
+    <button class="btn kucuk" onclick="dovusHesapla()">Çevir =</button>
+    <span id="p-dovus-sonuc" style="color:var(--yesil)"></span>
+    <button class="btn kucuk" id="btn-goz" title="Ekran Gözü (ekran_gozu node'u takılıysa): ekrana bir kez bakar, nöbetçi başlatır/durdurur"
+            onclick="gozToggle()">👁 Göz</button>
+    <span><i id="n-oklama" class="durum-nokta kotu"></i>Ollama</span>
+    <span><i id="n-model" class="durum-nokta orta"></i>Modeller</span>
+    <span id="saat"></span>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="bolum">
+      <h3>Oturumlar</h3>
+      <div id="oturum-liste"></div>
+      <button class="btn kucuk" style="margin-top:8px" onclick="yeniOturum()">+ Yeni Oturum</button>
+    </div>
+    <div class="bolum">
+      <h3>Organlar <span style="font-weight:400;text-transform:none">(sürekli aktif)</span></h3>
+      <div id="organ-liste"></div>
+    </div>
+    <div class="bolum">
+      <h3>Yetenekler <span style="font-weight:400;text-transform:none">(çağrılınca çalışır)</span></h3>
+      <div id="yetenek-liste"></div>
+    </div>
+    <div class="bolum">
+      <h3>Node'lar <span style="font-weight:400;text-transform:none">(nodeller/ — tak-sök)</span></h3>
+      <div id="node-liste"></div>
+    </div>
+    <div class="bolum">
+      <h3>Hızlı Yetenek Çağır</h3>
+      <div class="satir"><select id="hz-modul" style="min-width:130px"></select></div>
+      <div class="satir"><input type="text" id="hz-girdi" placeholder="girdi..." style="min-width:130px;flex:1">
+        <button class="btn kucuk" onclick="hizliCagir()">Çalıştır</button></div>
+    </div>
+    <!-- Katman B: node'ların sozlesme['panel_widget'] ile bildirdiği widget'lar
+         panel.js → widgetlariYukle() ile buraya basılır (data-node devre yakalayıcı) -->
+    <div id="node-widget-alani"></div>
+  </aside>
+
+  <section id="sohbet-alan">
+    <div id="mesajlar"></div>
+    <div id="yaziyor" class="yaziyor kapali">karar merkezi düşünüyor + model üretiyor…</div>
+    <div class="giris-kutu">
+      <div class="giris-ic">
+        <textarea id="giris" placeholder="Mesaj yaz (Enter=gönder, Shift+Enter=yeni satır). Kısayol: /arama sorgu ..."></textarea>
+        <button class="btn" id="gonder" onclick="mesajGonder()">Gönder ➤</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- AYAR MODALI -->
+<div class="modal-arka" id="modal-ayar"><div class="modal">
+  <h2>⚙ Model ve Sistem Ayarları</h2>
+  <div class="satir"><label>Ollama Adresi</label><input type="text" id="ay-adres" style="flex:1">
+    <button class="btn gris kucuk" onclick="ollamaTara()">Modelleri Tara</button></div>
+  <div class="not">Taranan yüklü modeller aşağıda; seçimler kalıcıdır ve sonraki açılışta varsayılan olur.</div>
+  <div id="model-liste" style="margin:10px 0"></div>
+  <div class="satir"><label>Rutin Model (hafif işler)</label><select id="ay-rutin"></select>
+    <button class="btn gris kucuk" onclick="modelTest('ay-rutin')">Test Et</button></div>
+  <div class="satir"><label>Ağır Model (kod/plan/analiz)</label><select id="ay-agir"></select>
+    <button class="btn gris kucuk" onclick="modelTest('ay-agir')">Test Et</button></div>
+  <div class="satir"><label>Sınıflandırma Modeli (karar merkezi)</label><select id="ay-sinif"></select>
+    <button class="btn gris kucuk" onclick="modelTest('ay-sinif')">Test Et</button></div>
+  <div class="satir"><label>Ağırlık Eşiği (≥ → ağır model)</label><input type="number" id="ay-esik" min="0" max="1" step="0.05" style="width:90px"></div>
+  <div id="test-sonuc" class="not"></div>
+  <hr class="cizgi">
+  <button class="btn" onclick="ayarKaydet()">Ayarları Kaydet</button>
+  <button class="btn gris" onclick="modalKapat('modal-ayar')">Kapat</button>
+</div></div>
+
+<!-- HAFIZA MODALI -->
+<div class="modal-arka" id="modal-hafiza"><div class="modal">
+  <h2>🧠 Hafıza Ayarları</h2>
+  <div class="satir"><label>Hafıza Etkin</label><span class="switch"><input type="checkbox" id="hf-etkin"><span class="slider"></span></span></div>
+  <div class="satir"><label>Motor</label><select id="hf-motor"><option value="yerel">Yerel (dosya tabanlı özetçi)</option><option value="mem0">Mem0 (pip install mem0ai gerektirir)</option></select></div>
+  <div class="satir"><label>Modele giden son mesaj sayısı</label><input type="number" id="hf-pencere" min="2" max="60" style="width:90px"></div>
+  <div class="satir"><label>Kaç mesajda bir özet alınsın</label><input type="number" id="hf-esik" min="4" max="40" style="width:90px"></div>
+  <hr class="cizgi">
+  <button class="btn" onclick="hafizaKaydet()">Kaydet</button>
+  <button class="btn gris" onclick="modalKapat('modal-hafiza')">Kapat</button>
+</div></div>
+
+<!-- BİLGİ MODALI -->
+<div class="modal-arka" id="modal-bilgi"><div class="modal">
+  <h2 id="bilgi-baslik">Bilgi</h2><div id="bilgi-icerik" style="font-size:13.5px;line-height:1.6;white-space:pre-wrap"></div>
+  <hr class="cizgi"><button class="btn gris" onclick="modalKapat('modal-bilgi')">Kapat</button>
+</div></div>
+
+<!-- ONAY KARTI (dış dünyaya açılan işlemler için) -->
+<div class="onay-kart" id="onay-kart">
+  <h4 id="onay-baslik">Onay bekliyor</h4>
+  <div id="onay-aciklama" style="font-size:13px;margin-bottom:8px"></div>
+  <div class="hedef" id="onay-hedef"></div>
+  <div class="butonlar">
+    <button class="btn onay kucuk" onclick="onayVer('tek')">✔ Yalnız bu sefer</button>
+    <button class="btn kucuk" onclick="onayVer('oturum')">🔓 Bu oturum boyunca</button>
+    <button class="btn kucuk" onclick="onayVer('kalici')">♾ Kalıcı izin</button>
+    <button class="btn reddet kucuk" onclick="onayVer('ret')">✖ Reddet</button>
+  </div>
+  <div class="not" id="onay-sayac"></div>
+</div>
+
+<!-- ARAMA AYARLARI MODALI -->
+<div class="modal-arka" id="modal-arama"><div class="modal">
+  <h2>🌐 Arama Ayarları</h2>
+  <div class="satir"><label>Dış dünya erişimi onaysız serbest olsun mu?</label>
+    <span class="switch"><input type="checkbox" id="ar-serbest"><span class="slider"></span></span></div>
+  <div class="not">Kapalıysa her arama/sayfa okuma işleminde panelde onay kartı çıkar; "bu oturum boyunca" seçersen bir daha sormaz.</div>
+  <div class="satir"><label>İngilizce destekli arama (TR + EN birlikte)</label>
+    <span class="switch"><input type="checkbox" id="ar-ingilizce"><span class="slider"></span></span></div>
+  <div class="not">Açıkken web araması Türkçe sorgunun yanında İngilizce çevirisini de tarar; sonuçlar tekilleştirilip dil etiketiyle gelir. Detaylı aramada zaten her zaman aktiftir.</div>
+  <div class="satir"><label>Varsayılan sonuç sayısı</label><input type="number" id="ar-adet" min="3" max="20" style="width:90px"></div>
+  <div class="satir"><label>Hava/döviz birimi her aramada denensin mi?</label>
+    <span class="switch"><input type="checkbox" id="ar-guncelveri"><span class="slider"></span></span></div>
+  <div class="not">Açıkken kur/hava gibi sayısal sorular blog yazılarından değil birebir API'den (open-meteo, exchangerate) zaman damgalı gelir; eşleşme yoksa sessizce boş döner.</div>
+  <div class="satir"><label>Ürün sitesine göre arama</label><input type="checkbox" id="ar-site-oncelik" checked style="width:auto"><label for="ar-site-oncelik" style="display:inline;margin-left:6px">öncelikli siteleri kullan</label></div>
+  <div class="satir"><label>Öncelikli siteler (virgülle)</label><input type="text" id="ar-siteler" style="flex:1" placeholder="hepsiburada.com, trendyol.com, akakce.com, cimri.com"></div>
+  <div class="not">Ürün aramasında bu sitelerdeki sonuçlar öne alınır ve model kodu eşleştirme etiketiyle gelir. İstersen ekleyip çıkarabilirsin.</div>
+  <hr class="cizgi">
+  <button class="btn" onclick="aramaKaydet()">Kaydet</button>
+  <button class="btn gris" onclick="modalKapat('modal-arama')">Kapat</button>
+</div></div>
+
+<!-- SÖKÜLEN MODÜL ARŞİVİ MODALI (artık nodeller/kabul/ içinde yaşar) -->
+<div class="modal-arka" id="modal-arsiv"><div class="modal">
+  <h2>🗃 Kabul Arşivi (Sökülenler + Dışarıdan Yazılanlar)</h2>
+  <div class="not">Sökülen modüller silinmez; <b>nodeller/kabul/</b> klasörüne taşınır ve buradan tek tıkla geri kurulur. Dışarıdan elle yazdığınız node'ları da bu klasöre koyup onaylayabilirsiniz.</div>
+  <div id="arsiv-liste" style="margin:10px 0"></div>
+  <button class="btn gris" onclick="modalKapat('modal-arsiv')">Kapat</button>
+</div></div>
+
+<!-- NODE YÖNETİMİ MODALI (Ayarlar menüsünden açılır) -->
+<div class="modal-arka" id="modal-node"><div class="modal" style="max-width:760px;width:94vw">
+  <h2>🧩 Node Yönetimi</h2>
+  <div class="not">
+    • <b>Yüklü Node'lar</b>: nodeller/ klasöründe, sol menüde görünür.<br>
+    • <b>Kabuldekiler</b>: nodeller/kabul/ — dışarıdan yazdıklarınız veya söktükleriniz burada bekler; "Onayla & Kur" ile yüklüye geçer.<br>
+    • Bir node'u <b>sökmek</b> için sol panel ya da aşağıdaki "Sök" düğmesi: klasör silinmez, kabul/'e döner → istediğiniz an geri kurabilirsiniz.
+  </div>
+  <h4 style="margin-top:12px;color:var(--vurgu)">Yüklü Node'lar</h4>
+  <div id="node-yuklu"></div>
+  <h4 style="margin-top:14px;color:var(--sari)">Kabul Klasöründekiler (nodeller/kabul)</h4>
+  <div id="node-kabul"></div>
+  <div id="node-eski" style="margin-top:10px"></div>
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn kucuk" onclick="eskiArsiviKabuleTasi()">Eski 'sokülen_moduller' arşivini KABUL'e taşı</button>
+    <button class="btn gris" onclick="nodeYonetimiGoster()">↻ Yenile</button>
+    <button class="btn gris" onclick="modalKapat('modal-node')">Kapat</button>
+  </div>
+</div></div>
+
+<!-- EL İZİN DEFTERİ MODALI -->
+<div class="modal-arka" id="modal-izinler"><div class="modal">
+  <h2>🔑 El / Onay İzin Defteri</h2>
+  <div class="not">Kalıcı izinler burada listelenir; istediğinizi iptal edebilirsiniz. Oturum izinleri sistem kapanınca kendiliğinden düşer.</div>
+  <div id="izin-liste" style="margin:10px 0"></div>
+  <button class="btn reddet kucuk" onclick="tumIzinleriSil()">Tüm kalıcı izinleri sil</button>
+  <button class="btn gris" onclick="modalKapat('modal-izinler')">Kapat</button>
+</div></div>
+
+<script src="/static/panel.js"></script>
+</body>
+</html>
