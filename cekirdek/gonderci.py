@@ -80,7 +80,15 @@ class GorevGonderici:
                          "model_secimi": "", "modul_girdisi": girdi or metin}
                 return self._modul_yol(kod, girdi or metin, oid, karar,
                                        zorla_model, iz={"karar": karar, "adimlar": []})
-        karar = self.karar.karar_ver(metin, oid)
+        # İzleme kararları sohbet bağlamından türetilir: son kullanıcı
+        # mesajlarını (en yeni 8) ham olarak gönder.
+        try:
+            _gecmis = self.hafiza.yerel.mesajlari_getir(oid) or []
+            _baglam = "\n".join(m.get("icerik", "") for m in _gecmis
+                                if m.get("rol") == "user")[-4000:]
+        except Exception:
+            _baglam = ""
+        karar = self.karar.karar_ver(metin, oid, baglam_metni=_baglam)
         if zorla_modul:
             karar["modul"] = zorla_modul
             karar["modul_girdisi"] = metin

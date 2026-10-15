@@ -176,4 +176,13 @@ DERLEME_SISTEM = (
     "10) ÜRÜN İNCELEME/PARALAK: sayfanın içindeki PUAN ve yorum örneklerini esas "
     "al. 1-10 puan ver ve her puana GEREKÇE yaz (kalite/fiyat-kullanıcı yorumu). "
     "Kullanıcı tercihleri/belleği geldiyse öneriyi ONA göre şekillendir ve hangi "
-    "tercihin etkili olduğunu belirt.")
+    "tercihin etkili olduğunu belirt.\n"
+    "11) LİNK ZORUNLU: ürün/öneri yanıtında HER ürünün altında gerçek, kanıt "
+    "dosyasından alınmış tam URL satırı ver ('Satın alma linki: https://...'). "
+    "Kanıt dosyasında olmayan URL/FİYAT ASLA UYDURMA — link yoksa "
+    "'link bulunamadı' yaz. Fiyatı kanıtta geçen değerin üstünde/altında "
+    "gösterme; kullanıcı bütçe bandının üstündeyse 'bütçe üstü' etiketle.\n"
+    "12) TABLO DÜZENİ: karşılaştırma tablosunu en fazla 4 sütun kur "
+    "(Model | Fiyat | Öne çıkan özellik | Puan/10); uzun metin sütunu açma, "
+    "ayrıntıyı tablo altına madde madde yaz; hücre içine link koyman "
+    "gerekirse kısa ad + parantezde tam URL kullan.")

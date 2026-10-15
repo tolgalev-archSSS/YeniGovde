@@ -42,6 +42,50 @@ class SiniflandiriciYedek:
     def agirlik_cezasiz_mi(self, tahmin: str) -> bool:
         return tahmin != "arastirmaci"
 
+    # İzleme (follow-up) kalıpları: tek başına anlam taşımaz, önceki isteğin
+    # devamıdır ("evet göster linkde ver" gibi). Bu durumda karar, SOHBET
+    # bağlamından türetilir; son kullanıcı mesajı arama sorgusu SANILMAZ.
+    _IZLEME_KELIMELERI = {
+        "evet", "yok", "hayir", "olmaz", "tamam", "peki", "tmm", "oky",
+        "goster", "göster", "goaster", "gtoster", "gtöster", "goestermek",
+        "ver", "versene", "verirmisin", "verirsin", "listele", "say",
+        "link", "linkler", "linkde", "linkte", "linkten", "linkleri",
+        "tablo", "ozet", "özet", "derle", "yazdir", "oku", "devam",
+        "ayrica", "böyle", "onlari", "onları", "bunlari", "bunları",
+        "sunlari", "söyle", "soyle", "ekle", "lutfen", "lütfen", "acaba",
+        "ve", "ile", "de", "da", "ya", "mi", "mı", "mu", "bi", "bir",
+        "sey", "şey", "yap", "yaparmisin", "edermisin", "eder", "ederse",
+        "gibi", "daha", "fazla", "detayli", "detaylı", "ayrinti", "ayrıntı",
+    }
+
+    @staticmethod
+    def _izleme_mi(metin: str) -> bool:
+        """Kısa, tek başına anlam taşımayan telkin cümlesi mi?
+        ('evet gtöster linkde ver' → evet; 'hava nasıl' → hayır.)"""
+        if len(metin) > 70 or "\n" in metin:
+            return False
+        kelimeler = [k for k in re.split(r"[^\wçğıöşüÇĞİÖŞÜ?!.]+",
+                                         metin.lower()) if k]
+        if not kelimeler or len(kelimeler) > 8:
+            return False
+        # tüm kelimeler izleme/dolgu sözcükleriyse → bu bir telkin cümlesidir
+        return all(k in SiniflandiriciYedek._IZLEME_KELIMELERI
+                   for k in kelimeler)
+
+    @staticmethod
+    def baglamdan_tahmin(sohbet_metni: str) -> str:
+        """Son kullanıcının mesajını değil, oturumdaki kullanıcı mesajlarını
+        birlikte değerlendirir: en yeni hangi göreve ait bir izleme cümlesi?"""
+        yedek = SiniflandiriciYedek()
+        parcalar = [m.strip() for m in (sohbet_metni or "").split("\n") if m.strip()]
+        for satir in reversed(parcalar):
+            if SiniflandiriciYedek._izleme_mi(satir):
+                continue                # izleme cümlesi → geriye git
+            tahmin = yedek.gorev_tahmini(satir)
+            if tahmin != "sohbet":
+                return tahmin
+        return ""
+
     def gorev_tahmini(self, metin: str) -> str:
         t = metin.lower()
         if any(k in t for k in ["node bul", "node kur", "node ara", "eklenti bul",
@@ -49,6 +93,14 @@ class SiniflandiriciYedek:
                                 "şu işi yapan bir node", "böyle bir node",
                                 "node yönet", "kabul klasörü"]):
             return "node_bulucu"
+        # Ürün sinyali EN ÖNCE gelir: "5000 tl bandında akıllı saat öner" gibi
+        # istekler eski sıralamada 'öner' anahtarı olmadığı için kaçıyor ve
+        # sohbete düşüp model halüsinasyon (uydurma link/fiyat) üretiyordu.
+        if re.search(r"\b\d+[.,]?\d*\s*(tl|lira)\b|\bfiyat\b|bütçe|butce|"
+                     r"bandında|bandinda|\balabilir miyim\b|önerisi|onerisi|"
+                     r"akıllı saat|smartwatch|kulaklık|telefon al|bilgisayar|"
+                     r"laptop|monitör|tablet|klavye|beyaz eşya|süpürge", t):
+            return "arastirmaci"
         if any(k in t for k in ["dosya", "klasör", "kaydet", "sil", "çöp", "taşı",
                                 "program aç", "uygulama aç", "süreç", "process",
                                 ".txt", ".md", ".pdf", ".docx", "masaüstü",
@@ -60,7 +112,8 @@ class SiniflandiriciYedek:
                                 "tufan", "mitoloji", "kutsal kitap", "sosyal medya",
                                 "kişi ara", "profil", "haber", "son dakika",
                                 "gündem", "bakış açısı", "incele", "puanla",
-                                "yorumları"]):
+                                "yorumları", "hakkında", "hakkinda", "araştır",
+                                "arastır", "genetik", "nasıl çalışır"]):
             return "arastirmaci"
         if any(k in t for k in ["ara", "güncel", "haber", "internet", "web", "fiyat"]):
             return "arama"
@@ -115,7 +168,8 @@ class KararMerkezi:
         self.yedek = SiniflandiriciYedek()
 
     # ---------- dış arayüz ----------
-    def karar_ver(self, metin: str, oturum: str = "") -> Dict[str, object]:
+    def karar_ver(self, metin: str, oturum: str = "",
+                  baglam_metni: str = "") -> Dict[str, object]:
         ayar_modul = self._model_sec()
         sonuc: Optional[dict] = None
         kaynak = "kural"
@@ -139,6 +193,30 @@ class KararMerkezi:
                 "modul_girdisi": metin,
                 "gerekce": "Kural tabanlı yedek sınıflandırıcı kullanıldı.",
             }
+        # İzleme (follow-up) düzeltmesi: kısa/telkinvari mesaj ("evet göster
+        # linkde ver") tek başına görev taşımıyorsa kararı SOHBET BAĞLAMINDAN
+        # türet; sorgu olarak son mesajı değil, bağlamdaki asıl isteği kullan.
+        kural_tahmin = self.yedek.gorev_tahmini(metin)
+        if kural_tahmin == "sohbet" and baglam_metni and \
+                SiniflandiriciYedek._izleme_mi(metin):
+            baglam_tahmin = SiniflandiriciYedek.baglamdan_tahmin(baglam_metni)
+            if baglam_tahmin:
+                ana_istek = ""
+                for satir in reversed([x.strip() for x in
+                                       baglam_metni.split("\n") if x.strip()]):
+                    if not SiniflandiriciYedek._izleme_mi(satir):
+                        ana_istek = satir
+                        break
+                sonuc["modul"] = baglam_tahmin
+                sonuc["agirlik"] = max(float(sonuc.get("agirlik") or 0), 0.7)
+                sonuc["tur"] = "arama"
+                sonuc["izleme"] = True
+                sonuc["gerekce"] = ("İzleme mesajı: önceki "
+                                    f"'{baglam_tahmin}' isteğinin devamı.")
+                if baglam_tahmin == "arastirmaci":
+                    girdi = {"eylem": "kurul_ara",
+                             "sorgu": ana_istek or metin, "adet": 8}
+                    sonuc["modul_girdisi"] = json.dumps(girdi, ensure_ascii=False)
         sonuc["kaynak"] = kaynak
         sonuc.setdefault("modul", "yok")
         # modul_girdisi sözlük (JSON) olabilir; yetenekler metin bekler → serileştir
